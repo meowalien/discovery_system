@@ -1,0 +1,1 @@
+ssh-keygen -t ed25519 -o -a 100 -f /Users/jackyli/project/discovery_system/argocd_ssh_key

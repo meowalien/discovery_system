@@ -42,3 +42,15 @@ sudo systemctl enable argocd-port-forward.service
 sudo systemctl start argocd-port-forward.service
 sudo systemctl status argocd-port-forward.service
 
+
+argocd admin initial-password -n argocd
+
+argocd --insecure login localhost:8080
+
+argocd account update-password
+
+export CLUSTER_CONFIG_PROJECT_URL=git@github.com:meowalien/discovery_system.git
+
+argocd repo add $CLUSTER_CONFIG_PROJECT_URL --ssh-private-key-path ~/argocd_ssh_key
+
+

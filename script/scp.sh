@@ -1,0 +1,1 @@
+scp -i /Users/jackyli/.ssh/google_compute_engine ./argocd_ssh_key jackyli@34.81.252.251:~/argocd_ssh_key
