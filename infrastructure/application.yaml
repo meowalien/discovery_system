@@ -1,0 +1,237 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sshd
+  namespace: argocd
+spec:
+  project: default
+  source:
+      repoURL: git@github.com:meowalien/homepage-cluster-config.git
+      targetRevision: HEAD
+      path: sshd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sshd
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    automated:
+      prune: true
+      selfHeal: true
+  revisionHistoryLimit: 3
+
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sealed-secrets
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:meowalien/homepage-cluster-config.git
+    targetRevision: HEAD
+    path: sealed-secrets
+    helm:
+      values: |
+        fullnameOverride: sealed-secrets-controller
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "250m"
+            memory: "512Mi"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sealed-secrets
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    automated:
+      prune: true
+      selfHeal: true
+  revisionHistoryLimit: 3
+
+---
+
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mongodb-operator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:meowalien/homepage-cluster-config.git
+    targetRevision: HEAD
+    path: mongodb-operator
+    helm:
+      values: |
+        operator:
+          resources:
+            requests:
+              cpu: "2m"
+              memory: "40Mi"
+          watchNamespace: "mongodb-cluster"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mongodb-operator
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    automated:
+      prune: true
+      selfHeal: true
+  revisionHistoryLimit: 3
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mongodb-cluster
+  namespace: argocd
+spec:
+  project: default
+  source:
+      repoURL: git@github.com:meowalien/homepage-cluster-config.git
+      targetRevision: HEAD
+      path: mongodb-cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mongodb-cluster
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    automated:
+      prune: true
+      selfHeal: true
+  revisionHistoryLimit: 3
+
+---
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgresql
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:meowalien/homepage-cluster-config.git
+    targetRevision: HEAD
+    path: postgresql
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: postgresql
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    automated:
+      prune: true
+      selfHeal: true
+  revisionHistoryLimit: 3
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: homepage
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:meowalien/homepage-cluster-config.git
+    targetRevision: HEAD
+    path: homepage
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: homepage
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+    automated:
+      prune: true
+      selfHeal: true
+  revisionHistoryLimit: 3
+
+
+
+
+
+
+
+#
+#
+#
+#
+#
+#---
+#
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: rabbitmq-cluster-operator
+#  namespace: argocd
+#spec:
+#  project: default
+#  source:
+#    repoURL: git@github.com:meowalien/homepage-cluster-config.git
+#    targetRevision: HEAD
+#    path: rabbitmq-cluster-operator
+#    helm:
+#      values: |
+#        msgTopologyOperator:
+#          resources:
+#            limits:
+#              cpu: "250m"
+#              memory: "512Mi"
+#            requests:
+#              cpu: "250m"
+#              memory: "512Mi"
+#        clusterOperator:
+#          resources:
+#            limits:
+#              cpu: "250m"
+#              memory: "512Mi"
+#            requests:
+#              cpu: "250m"
+#              memory: "512Mi"
+#          watchAllNamespaces: false
+#          watchNamespaces:
+#            - rabbitmq-cluster
+#  destination:
+#    server: https://kubernetes.default.svc
+#    namespace: rabbitmq-cluster-operator
+#  syncPolicy:
+#    syncOptions:
+#      - CreateNamespace=true
+#    automated:
+#      prune: true
+#      selfHeal: true
+#  revisionHistoryLimit: 3
+#---
+#
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: rabbitmq-cluster
+#  namespace: argocd
+#spec:
+#  project: default
+#  source:
+#    repoURL: git@github.com:meowalien/homepage-cluster-config.git
+#    targetRevision: HEAD
+#    path: rabbitmq-cluster
+#  destination:
+#    server: https://kubernetes.default.svc
+#    namespace: rabbitmq-cluster
+#  syncPolicy:
+#    syncOptions:
+#      - CreateNamespace=true
+#    automated:
+#      prune: true
+#      selfHeal: true
+#  revisionHistoryLimit: 3
