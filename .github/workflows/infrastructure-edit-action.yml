@@ -1,0 +1,17 @@
+name: Folder Changes CI
+
+on:
+  push:
+    # 只監聽 main 分支(可自行調整)
+    branches: [ "main" ]
+    # 只有在這些路徑發生變動時，才會觸發工作流程
+    paths:
+      - 'script/**'
+
+jobs:
+  # B action job：當 script 資料夾有變動時才執行
+  acript-edit-action:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run B Action
+        run: echo "Run B Action because script folder changed."

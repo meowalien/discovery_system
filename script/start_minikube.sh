@@ -22,5 +22,3 @@ sudo systemctl daemon-reload
 sudo systemctl enable minikube.service
 sudo systemctl start minikube.service
 sudo systemctl status minikube.service
-
-aaaaaa
