@@ -7,7 +7,7 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:ar
 
 gcloud iam service-accounts keys create ~/argocd-service-account-key.json --iam-account="argocd-service-account@$PROJECT_ID.iam.gserviceaccount.com"
 
-kubectl create -n argocd secret docker-registry gcp-artifact-registry --docker-server=asia-east1-docker.pkg.dev --docker-email="argocd-service-account@$PROJECT_ID.iam.gserviceaccount.com" --docker-username=_json_key --docker-password="$(cat ~/argocd-service-account-key.json)"
+kubectl create secret docker-registry gcp-artifact-registry --docker-server=asia-east1-docker.pkg.dev --docker-email="argocd-service-account@$PROJECT_ID.iam.gserviceaccount.com" --docker-username=_json_key --docker-password="$(cat ~/argocd-service-account-key.json)"
 
 #gcloud auth configure-docker asia-east1-docker.pkg.dev
 
