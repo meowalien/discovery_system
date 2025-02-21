@@ -1,0 +1,6 @@
+version: "1.0.0"
+env: "development"
+
+qdrant:
+  host: "localhost"
+  port: 6333
