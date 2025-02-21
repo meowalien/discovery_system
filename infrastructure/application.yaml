@@ -11,7 +11,7 @@ spec:
       path: infrastructure/guestbook
   destination:
     server: https://kubernetes.default.svc
-    namespace: guestbook
+    namespace: default
   syncPolicy:
     syncOptions:
     - CreateNamespace=true
