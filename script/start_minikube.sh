@@ -18,8 +18,6 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 
-
-
 sudo systemctl daemon-reload
 sudo systemctl enable minikube.service
 sudo systemctl start minikube.service
