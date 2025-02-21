@@ -8,8 +8,8 @@ import (
 
 type Env struct {
 	Port     string `envconfig:"PORT" default:"3000"`
-	Host     string `envconfig:"HOST" default:"localhost"`
 	LogLevel string `envconfig:"LOG_LEVEL" default:"info"`
+	LogFile  string `envconfig:"LOG_FILE" default:"./log.log"`
 }
 
 var env atomic.Pointer[Env]

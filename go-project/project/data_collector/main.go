@@ -3,16 +3,7 @@ package main
 import (
 	"core"
 	"fmt"
-	"google.golang.org/grpc/credentials/insecure"
-	"log"
-
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-
-	// Qdrant 客戶端
-	"github.com/qdrant/go-client/qdrant"
-	"google.golang.org/grpc"
 )
 
 //// 全域變數儲存設定 (也可以包在 struct 裡)
@@ -45,33 +36,12 @@ import (
 func main() {
 	core.InitEnv()
 	core.InitConfig()
+	defer core.FinalizeLoggers()
+	globalLogger := core.NewLogger(core.GetEnv().LogLevel, core.GetEnv().LogFile)
+	core.SetGlobalLogger(globalLogger)
 
 	version := core.GetConfig().Version
-	fmt.Println("version: ", version)
-
-	// 初始化 Logrus
-	logrus.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-	})
-	logrus.SetLevel(logrus.DebugLevel)
-	qdrantHost := viper.GetString("qdrant.host")
-	qdrantPort := viper.GetInt("qdrant.port")
-
-	// 嘗試連線 Qdrant（如果有需要的話）
-	// 這邊只示範如何建立連線
-	address := fmt.Sprintf("%s:%d", qdrantHost, qdrantPort)
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		logrus.Errorf("連線 Qdrant 失敗: %v", err)
-	} else {
-		// 初始化客戶端
-		qdrantClient := qdrant.NewQdrantClient(conn)
-		logrus.Infof("成功連線 Qdrant，位於 %s", address)
-
-		// 範例：可以在這裡使用 qdrantClient 執行各種操作
-		// e.g. qdrantClient.ListCollections(...)
-		_ = qdrantClient
-	}
+	globalLogger.Infof("version: ", version)
 
 	// 建立 Gin 引擎
 	r := gin.Default()
@@ -83,9 +53,9 @@ func main() {
 		})
 	})
 
-	// 啟動 Server
-	logrus.Infof("啟動 HTTP 伺服器，http://localhost:8080/ ...")
-	if err := r.Run(":8080"); err != nil {
-		log.Fatalf("無法啟動伺服器: %v", err)
+	addr := fmt.Sprintf(":%s", core.GetEnv().Port)
+	globalLogger.Infof("啟動 HTTP 伺服器，%s ...", addr)
+	if err := r.Run(addr); err != nil {
+		globalLogger.Fatalf("無法啟動伺服器: %v", err)
 	}
 }
