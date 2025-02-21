@@ -8,14 +8,6 @@ rm argocd-linux-amd64
 
 argocd login --core
 
-
-#ClusterIP
-#kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "ClusterIP"}}'
-#kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort"}}'
-#kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
-#minikube service argocd-server  -n argocd  --url
-
-
 sudo vim /etc/systemd/system/argocd-port-forward.service
 
 [Unit]
