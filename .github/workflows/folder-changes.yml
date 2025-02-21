@@ -1,0 +1,29 @@
+name: Folder Changes CI
+
+on:
+  push:
+    # 只監聽 main 分支(可自行調整)
+    branches: [ "main" ]
+    # 只有在這些路徑發生變動時，才會觸發工作流程
+    paths:
+      - 'infrastructure/**'
+      - 'script/**'
+
+jobs:
+  # A action job：當 infrastructure 資料夾有變動時才執行
+  a-action:
+    # 用條件判斷 commits 裡的修改檔案路徑，如果包含 "infrastructure/" 才跑此 job
+    if: contains(join(toJson(github.event.commits.*.modified)), 'infrastructure/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run A Action
+        run: echo "Run A Action because infrastructure folder changed."
+
+  # B action job：當 script 資料夾有變動時才執行
+  b-action:
+    # 用條件判斷 commits 裡的修改檔案路徑，如果包含 "script/" 才跑此 job
+    if: contains(join(toJson(github.event.commits.*.modified)), 'script/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run B Action
+        run: echo "Run B Action because script folder changed."
