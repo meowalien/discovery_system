@@ -15,16 +15,17 @@ RUN test -n "$VERSION" || (echo "ERROR: VERSION is not set!" && exit 1)
 WORKDIR /app
 
 # Copy go.mod and go.sum first to leverage caching
-COPY go.mod go.sum ./
-RUN go mod download
+#COPY go.mod go.sum ./
+
 
 # Copy the rest of the source code
 COPY . .
-
+RUN ls -R /app
+RUN go work sync
 # Build the application (embed VERSION via ldflags)
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-X main.Version=$VERSION" \
-    -o myapp .
+    -o myapp ./project/data_collector
 
 ##
 # Stage 2: Final minimal image
