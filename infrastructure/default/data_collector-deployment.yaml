@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: guestbook-ui
+  name: data_collector
 spec:
   replicas: 1
   revisionHistoryLimit: 3
   selector:
     matchLabels:
-      app: guestbook-ui
+      app: data_collector
   template:
     metadata:
       labels:
-        app: guestbook-ui
+        app: data_collector
     spec:
       containers:
-      - image: asia-east1-docker.pkg.dev/homepage-436511/docker-repo/ks-guestbook-demo:latest
-        name: guestbook-ui
+      - image: asia-east1-docker.pkg.dev/homepage-436511/docker-repo/data_collector:latest
+        name: data_collector
         ports:
-        - containerPort: 80
+        - containerPort: 3000
       imagePullSecrets:
         - name: gcp-artifact-registry

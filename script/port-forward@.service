@@ -1,0 +1,27 @@
+[Unit]
+Description=Port-Forward Service for %i
+After=minikube.service
+Requires=minikube.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+# 透過 /bin/bash -c, 將 %i 切割成 4 段：NAMESPACE-SERVICENAME-HOSTPORT-CONTAINERPORT
+ExecStart=/bin/bash -c "\
+  NAMESPACE=$(echo '%i' | cut -d '-' -f1) && \
+  SERVICENAME=$(echo '%i' | cut -d '-' -f2) && \
+  HOSTPORT=$(echo '%i' | cut -d '-' -f3) && \
+  CONTAINERPORT=$(echo '%i' | cut -d '-' -f4) && \
+  echo \"Starting port-forward: namespace=$NAMESPACE, svc=${SERVICENAME}-server, hostPort=$HOSTPORT, containerPort=$CONTAINERPORT\" && \
+  exec /usr/local/bin/minikube kubectl -- port-forward --address 0.0.0.0 svc/${SERVICENAME} -n ${NAMESPACE} ${HOSTPORT}:${CONTAINERPORT} \
+"
+Restart=always
+RestartSec=5s
+User=jackyli
+Group=jackyli
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
