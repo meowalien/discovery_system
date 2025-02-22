@@ -1,10 +1,10 @@
 package core
 
 import (
+	"core/errs"
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"
-	"sync"
 	"sync/atomic"
 )
 
@@ -24,11 +24,11 @@ func (l *logger) Close() error {
 	}
 	err := l.file.Sync()
 	if err != nil {
-		logrus.Errorf("Failed to sync log file %s because %v", key, err)
+		return errs.New("Failed to sync log file error: %v", err)
 	}
 	err = l.file.Close()
 	if err != nil {
-		errs.New("Failed to close log file %s because %v", key, err)
+		return errs.New("Failed to close log file error: %v", err)
 	}
 	return nil
 }
@@ -86,19 +86,4 @@ func NewLogger(levelStr string, logPath string) Logger {
 		FieldLogger: log.WithFields(logrus.Fields{}),
 		file:        file,
 	}
-}
-
-func FinalizeLoggers() {
-	openFiles.Range(func(key, value interface{}) bool {
-		file := value.(*os.File)
-		err := file.Sync()
-		if err != nil {
-			logrus.Errorf("Failed to sync log file %s because %v", key, err)
-		}
-		err = file.Close()
-		if err != nil {
-			logrus.Errorf("Failed to close log file %s because %v", key, err)
-		}
-		return true
-	})
 }

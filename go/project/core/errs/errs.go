@@ -1,9 +1,9 @@
 package errs
 
 import (
+	"core/runtime"
 	"errors"
 	"fmt"
-	"ops-api/internal/util/runtime"
 )
 
 /*

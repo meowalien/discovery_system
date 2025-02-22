@@ -10,6 +10,7 @@ type Env struct {
 	Port     string `envconfig:"PORT" default:"3000"`
 	LogLevel string `envconfig:"LOG_LEVEL" default:"info"`
 	LogFile  string `envconfig:"LOG_FILE" default:"./log.log"`
+	Version  string `envconfig:"VERSION" default:"unknown"`
 }
 
 var env atomic.Pointer[Env]

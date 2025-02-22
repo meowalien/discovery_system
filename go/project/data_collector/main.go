@@ -3,13 +3,8 @@ package main
 import (
 	"context"
 	"core"
+	"data_collector/http_routes"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 )
 
@@ -18,28 +13,23 @@ func main() {
 	defer gracefulShutdownQueue.Run(5 * time.Second)
 	core.InitEnv()
 	core.InitConfig()
-	gracefulShutdownQueue.Register(func(ctx context.Context) {
-		core.FinalizeLoggers()
-	})
 	globalLogger := core.NewLogger(core.GetEnv().LogLevel, core.GetEnv().LogFile)
 	core.SetGlobalLogger(globalLogger)
-
-	version := core.GetConfig().Version
-	globalLogger.Infof("version: %s", version)
+	gracefulShutdownQueue.Register(func(ctx context.Context) {
+		err := globalLogger.Close()
+		if err != nil {
+			globalLogger.Errorf("fail to close globalLogger: %v", err)
+		} else {
+			globalLogger.Infof("globalLogger closed")
+		}
+	})
 
 	httpEngine := core.NewHttpEngine()
-
-	httpEngine.Mount(func(r gin.IRoutes) {
-		r.GET("/version", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"version": version,
-			})
-		})
-	})
+	httpEngine.Mount(http_routes.Version)
 
 	addr := fmt.Sprintf(":%s", core.GetEnv().Port)
 	if err := httpEngine.Start(addr); err != nil {
-		log.Fatalf("failt to start http server: %v", err)
+		globalLogger.Errorf("failt to start http server: %v", err)
 	}
 
 	gracefulShutdownQueue.Register(func(ctx context.Context) {
@@ -51,5 +41,5 @@ func main() {
 	})
 
 	gracefulShutdownQueue.WaitForShutdown()
-
+	globalLogger.Infof("shut down gracefully")
 }
