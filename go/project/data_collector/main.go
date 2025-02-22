@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+var Version = "unknown"
+
 func main() {
 	gracefulShutdownQueue := core.NewGracefulShutdownQueue()
 	defer gracefulShutdownQueue.Run(5 * time.Second)
@@ -26,7 +28,7 @@ func main() {
 	})
 
 	httpEngine := core.NewHttpEngine(core.GetEnv().Mode)
-	httpEngine.Mount(http_routes.Version)
+	httpEngine.Mount(http_routes.Version(Version))
 
 	addr := fmt.Sprintf(":%s", core.GetEnv().Port)
 	if err := httpEngine.Start(addr); err != nil {

@@ -1,18 +1,44 @@
-name: Folder Changes CI
+name: Docker Build
 
 on:
   push:
-    # 只監聽 main 分支(可自行調整)
+    # Only trigger on changes in main branch
     branches: [ "main" ]
-    # 只有在這些路徑發生變動時，才會觸發工作流程
+    # Only trigger when files in this path change
     paths:
-      - 'infrastructure/**'
-
+      - 'go/project/data_collector/**'
 
 jobs:
-  # A action job：當 infrastructure 資料夾有變動時才執行
-  infrastructure-edit-action:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Run A Action
-        run: echo "Run A Action because infrastructure folder changed."
+      - name: Check out repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensure all tags are fetched
+
+      - name: Get Git Tag or Short SHA
+        id: get_version
+        run: |
+          TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
+          if [ -z "$TAG" ]; then
+            TAG=$(git rev-parse --short=8 HEAD)  # Get first 8 characters of SHA
+          fi
+          echo "VERSION=$TAG" >> $GITHUB_ENV
+          echo "VERSION_TAG=$TAG" >> $GITHUB_ENV
+          echo "Computed VERSION: $TAG"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and Push Multi-Platform Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          # Use computed VERSION in the tag
+          tags: asia-east1-docker.pkg.dev/homepage-436511/docker-repo/data_collector:${{ env.VERSION }}
+          build-args: |
+            VERSION=${{ env.VERSION }}
