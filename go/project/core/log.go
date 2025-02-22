@@ -55,10 +55,10 @@ func GetGlobalLogger() Logger {
 	return *l
 }
 
-func NewLogger(levelStr string, logPath string) Logger {
+func NewLogger(logLevel LogLevel, logPath string) Logger {
 	log := logrus.New()
 	// convert string to logrus level
-	level, err := logrus.ParseLevel(levelStr)
+	level, err := logrus.ParseLevel(string(logLevel))
 	if err != nil {
 		log.Fatalf("Failed to parse log level because %v", err)
 	}

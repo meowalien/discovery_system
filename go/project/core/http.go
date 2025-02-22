@@ -47,7 +47,16 @@ func (h *httpEngine) Mount(f func(gin.IRoutes)) {
 	f(h.engine)
 }
 
-func NewHttpEngine() HTTPEngine {
+func NewHttpEngine(mode Mode) HTTPEngine {
+	switch mode {
+	case ModeDebug:
+		gin.SetMode(gin.DebugMode)
+	case ModeRelease:
+		gin.SetMode(gin.ReleaseMode)
+	default:
+		GetGlobalLogger().Fatalf("invalid mode: %s", mode)
+	}
+
 	return &httpEngine{
 		engine: gin.Default(),
 	}

@@ -13,6 +13,7 @@ func main() {
 	defer gracefulShutdownQueue.Run(5 * time.Second)
 	core.InitEnv()
 	core.InitConfig()
+
 	globalLogger := core.NewLogger(core.GetEnv().LogLevel, core.GetEnv().LogFile)
 	core.SetGlobalLogger(globalLogger)
 	gracefulShutdownQueue.Register(func(ctx context.Context) {
@@ -24,7 +25,7 @@ func main() {
 		}
 	})
 
-	httpEngine := core.NewHttpEngine()
+	httpEngine := core.NewHttpEngine(core.GetEnv().Mode)
 	httpEngine.Mount(http_routes.Version)
 
 	addr := fmt.Sprintf(":%s", core.GetEnv().Port)
