@@ -37,5 +37,3 @@ COPY --from=builder /app/myapp /usr/local/bin/myapp
 
 # Set an entrypoint (or CMD)
 ENTRYPOINT ["/usr/local/bin/myapp"]
-
-
