@@ -12,15 +12,16 @@ sudo vim /etc/systemd/system/argocd-port-forward.service
 
 [Unit]
 Description=ArgoCD Port-Forward Service
-# Make sure this starts AFTER minikube.service
 After=minikube.service
 Requires=minikube.service
 
 [Service]
 Type=simple
-# Run the port-forward command in the foreground so systemd can manage it.
 ExecStart=/usr/local/bin/minikube kubectl -- port-forward --address 0.0.0.0 svc/argocd-server -n argocd 8080:80
 Restart=always
+RestartSec=5s  # Wait 5 seconds before restarting
+StartLimitInterval=300
+StartLimitBurst=5
 User=jackyli
 Group=jackyli
 StandardOutput=journal
