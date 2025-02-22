@@ -41,7 +41,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: go
-          file: project/data_collector/Dockerfile
+          file: go/project/data_collector/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: asia-east1-docker.pkg.dev/homepage-436511/docker-repo/data_collector:${{ env.VERSION }}
