@@ -9,6 +9,11 @@ import (
 )
 
 type Config struct {
+	Qdrant struct {
+		Host   string `mapstructure:"host"`
+		Port   int    `mapstructure:"port"`
+		APIKey string `mapstructure:"api_key"`
+	} `mapstructure:"qdrant"`
 }
 
 var config atomic.Pointer[Config]

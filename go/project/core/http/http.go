@@ -3,9 +3,11 @@ package http
 import (
 	"context"
 	"core/env"
+	"core/graceful_shutdown"
 	"core/log"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"sync/atomic"
 )
@@ -30,6 +32,14 @@ func (h *httpEngine) Start(addr string) error {
 	if !swapped {
 		return errors.New("server already started")
 	}
+
+	graceful_shutdown.AddFinalizer(func(ctx context.Context) {
+		if err := h.Stop(ctx); err != nil {
+			logrus.Errorf("fail to stop http server: %v", err)
+		} else {
+			logrus.Infof("http server stopped")
+		}
+	})
 
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err

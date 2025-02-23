@@ -1,8 +1,10 @@
 package log
 
 import (
+	"context"
 	"core/env"
 	"core/errs"
+	"core/graceful_shutdown"
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -83,8 +85,18 @@ func NewLogger(logLevel env.LogLevel, logPath string) Logger {
 
 	log.SetOutput(outWriter)
 
-	return &logger{
+	newLogger := &logger{
 		FieldLogger: log.WithFields(logrus.Fields{}),
 		file:        file,
 	}
+
+	graceful_shutdown.AddFinalizer(func(ctx context.Context) {
+		err1 := newLogger.Close()
+		if err1 != nil {
+			logrus.Errorf("fail to close logger: %v, logPath: %s", err1, logPath)
+		} else {
+			logrus.Infof("logger closed: %s", logPath)
+		}
+	})
+	return newLogger
 }

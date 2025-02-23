@@ -9,18 +9,12 @@ import (
 	"time"
 )
 
-type GracefulShutdownQueue interface {
-	Register(f func(ctx context.Context))
-	WaitForShutdown()
-	Run(shutdownDeadline time.Duration)
-}
-
 type gracefulShutdownQueue struct {
 	mutex sync.Mutex
 	queue []func(ctx context.Context)
 }
 
-func (g *gracefulShutdownQueue) Register(f func(ctx context.Context)) {
+func (g *gracefulShutdownQueue) AddFinalizer(f func(ctx context.Context)) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 	g.queue = append(g.queue, f)
@@ -32,7 +26,7 @@ func (g *gracefulShutdownQueue) WaitForShutdown() {
 	<-quit
 }
 
-func (g *gracefulShutdownQueue) Run(shutdownDeadline time.Duration) {
+func (g *gracefulShutdownQueue) RunFinalizers(shutdownDeadline time.Duration) {
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownDeadline)
 	defer cancel()
 	for i := len(g.queue) - 1; i >= 0; i-- {
@@ -40,6 +34,16 @@ func (g *gracefulShutdownQueue) Run(shutdownDeadline time.Duration) {
 	}
 }
 
-func NewGracefulShutdownQueue() GracefulShutdownQueue {
-	return &gracefulShutdownQueue{}
+var queue = &gracefulShutdownQueue{}
+
+func AddFinalizer(f func(ctx context.Context)) {
+	queue.AddFinalizer(f)
+}
+
+func WaitForShutdown() {
+	queue.WaitForShutdown()
+}
+
+func RunFinalizers(shutdownDeadline time.Duration) {
+	queue.RunFinalizers(shutdownDeadline)
 }
