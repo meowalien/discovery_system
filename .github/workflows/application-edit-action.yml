@@ -30,8 +30,8 @@ jobs:
         #  - 以當下 Unix 時間戳記 (秒) 做為隨機數。
         #  - 也可以使用 $RANDOM、UUID 等方式來產生更加隨機的檔名。
 
-      # 4. 將 application.yaml 上傳到遠端隨機檔名
-      - name: Copy application.yaml to remote
+      # 4. 將 application 上傳到遠端隨機檔名
+      - name: Copy application to remote
         uses: appleboy/scp-action@v0.1.4
         with:
           host: 34.81.62.96
@@ -50,7 +50,7 @@ jobs:
           username: jackyli
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "Applying file: ${{ env.TMPFILE }}/application.yaml"
-            minikube kubectl -- apply -n argocd -f ${{ env.TMPFILE }}/application.yaml
+            echo "Applying file: ${{ env.TMPFILE }}"
+            minikube kubectl -- apply -n argocd -f ${{ env.TMPFILE }}
             # 針對該隨機檔案，後續是否要刪除，由你自行選擇
-            # rm -f ${{ env.TMPFILE }}/application.yaml
+            # rm -f ${{ env.TMPFILE }}

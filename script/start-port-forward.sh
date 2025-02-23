@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 
-# 假設這隻腳本叫 start-port-forward.sh
-
 if [ -z "$1" ]; then
-#  NAMESPACE-SERVICENAME-HOSTPORT-CONTAINERPORT
   echo "Usage: $0 <namespace> <service-name> <host-port> <container-port>"
   exit 1
 fi

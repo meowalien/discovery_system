@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: default
+  name: qdrant
   namespace: argocd
 spec:
-  project: default
+  project: qdrant
   source:
       repoURL: git@github.com:meowalien/discovery_system.git
       targetRevision: HEAD
-      path: infrastructure/default
+      path: infrastructure/qdrant
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: qdrant
   syncPolicy:
     syncOptions:
     - CreateNamespace=true
@@ -20,4 +20,3 @@ spec:
       selfHeal: true
   revisionHistoryLimit: 0
 
-#

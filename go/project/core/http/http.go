@@ -1,7 +1,9 @@
-package core
+package http
 
 import (
 	"context"
+	"core/env"
+	"core/log"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -47,14 +49,14 @@ func (h *httpEngine) Mount(f func(gin.IRoutes)) {
 	f(h.engine)
 }
 
-func NewHttpEngine(mode Mode) HTTPEngine {
+func NewHttpEngine(mode env.Mode) HTTPEngine {
 	switch mode {
-	case ModeDebug:
+	case env.ModeDebug:
 		gin.SetMode(gin.DebugMode)
-	case ModeRelease:
+	case env.ModeRelease:
 		gin.SetMode(gin.ReleaseMode)
 	default:
-		GetGlobalLogger().Fatalf("invalid mode: %s", mode)
+		log.GetGlobalLogger().Fatalf("invalid mode: %s", mode)
 	}
 
 	return &httpEngine{

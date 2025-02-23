@@ -1,6 +1,7 @@
-package core
+package log
 
 import (
+	"core/env"
 	"core/errs"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -55,7 +56,7 @@ func GetGlobalLogger() Logger {
 	return *l
 }
 
-func NewLogger(logLevel LogLevel, logPath string) Logger {
+func NewLogger(logLevel env.LogLevel, logPath string) Logger {
 	log := logrus.New()
 	// convert string to logrus level
 	level, err := logrus.ParseLevel(string(logLevel))

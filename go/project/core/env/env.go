@@ -1,6 +1,7 @@
-package core
+package env
 
 import (
+	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 	"sync/atomic"
@@ -13,6 +14,7 @@ type Env struct {
 	Version  string   `envconfig:"VERSION" default:"unknown"`
 	Mode     Mode     `envconfig:"MODE" default:"debug"`
 }
+
 type LogLevel string
 
 const (
@@ -38,6 +40,7 @@ func checkEnv(e Env) {
 	default:
 		logrus.Fatalf("invalid mode: %s", e.Mode)
 	}
+
 	switch e.LogLevel {
 	case LogLevelPanic, LogLevelFatal, LogLevelError, LogLevelWarning, LogLevelInfo, LogLevelDebug, LogLevelTrace:
 	default:
@@ -54,10 +57,14 @@ func GetEnv() Env {
 	}
 
 	return *e
-
 }
 
 func loadEnv(cfg any) {
+	// Load .env file if exists
+	if err := godotenv.Load(".env"); err != nil {
+		logrus.Warnf("No .env file found, using system environment variables")
+	}
+
 	err := envconfig.Process("", cfg)
 	if err != nil {
 		logrus.Fatalf("envconfig.Process error: %v", err)
