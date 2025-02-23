@@ -17,3 +17,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable port-forward@$NAMESPACE:$SERVICE_NAME:$HOST_PORT:$CONTAINER_PORT.service
 sudo systemctl start port-forward@$NAMESPACE:$SERVICE_NAME:$HOST_PORT:$CONTAINER_PORT.service
 sudo systemctl status port-forward@$NAMESPACE:$SERVICE_NAME:$HOST_PORT:$CONTAINER_PORT.service
+
+
+# sudo systemctl status port-forward@argocd:argocd-server:8080:80.service
+# sudo systemctl status port-forward@default-datacollector-3000-3000.service
+# ./start-port-forward.sh qdrant qdrant 6334 6334
+# ./start-port-forward.sh qdrant qdrant 6333 6333

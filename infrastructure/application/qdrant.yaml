@@ -12,6 +12,8 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: qdrant
+    helm:
+      apiKey: "thisisakey"
   syncPolicy:
     syncOptions:
     - CreateNamespace=true
