@@ -40,6 +40,7 @@ jobs:
           source: infrastructure/application.yaml
           target: ${{ env.TMPFILE }}             # 使用前一步產生的隨機檔名
           overwrite: true
+          strip_components: 1  # 這一行確保只上傳檔案本身，不包含目錄
 
       # 5. SSH 到遠端，執行部署指令 (minikube kubectl apply)
       - name: Deploy via SSH
