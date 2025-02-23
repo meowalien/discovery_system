@@ -4,7 +4,7 @@ metadata:
   name: qdrant
   namespace: argocd
 spec:
-  project: qdrant
+  project: default
   source:
       repoURL: git@github.com:meowalien/discovery_system.git
       targetRevision: HEAD

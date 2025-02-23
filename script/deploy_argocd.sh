@@ -47,3 +47,4 @@ export CLUSTER_CONFIG_PROJECT_URL=git@github.com:meowalien/discovery_system.git
 argocd repo add $CLUSTER_CONFIG_PROJECT_URL --ssh-private-key-path ~/argocd_ssh_key
 
 
+#ls /etc/systemd/system/multi-user.target.wants/
