@@ -38,4 +38,4 @@ WORKDIR /app
 COPY --from=builder /app/myapp .
 
 # Set an entrypoint (or CMD)
-ENTRYPOINT ["myapp"]
+ENTRYPOINT ["/app/myapp"]
