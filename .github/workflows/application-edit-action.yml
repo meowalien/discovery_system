@@ -24,7 +24,7 @@ jobs:
       - name: Generate random remote filename
         id: generate_random_name
         run: |
-          RANDOM_NAME="application-$(date +%s).yaml"
+          RANDOM_NAME="application-$(date +%s)"
           echo "TMPFILE=/tmp/$RANDOM_NAME" >> $GITHUB_ENV
         # 說明：
         #  - 以當下 Unix 時間戳記 (秒) 做為隨機數。
@@ -40,7 +40,7 @@ jobs:
           source: infrastructure/application
           target: ${{ env.TMPFILE }}             # 使用前一步產生的隨機檔名
           overwrite: true
-          strip_components: 1  # 這一行確保只上傳檔案本身，不包含目錄
+          strip_components: 2  # 這一行確保只上傳檔案本身，不包含目錄
 
       # 5. SSH 到遠端，執行部署指令 (minikube kubectl apply)
       - name: Deploy via SSH
@@ -50,7 +50,7 @@ jobs:
           username: jackyli
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "Applying file: ${{ env.TMPFILE }}"
-            minikube kubectl -- apply -n argocd -f ${{ env.TMPFILE }}
+            echo "Applying file: ${{ env.TMPFILE }}/application.yaml"
+            minikube kubectl -- apply -n argocd -f ${{ env.TMPFILE }}/application.yaml
             # 針對該隨機檔案，後續是否要刪除，由你自行選擇
-            # rm -f ${{ env.TMPFILE }}
+            # rm -f ${{ env.TMPFILE }}/application.yaml
