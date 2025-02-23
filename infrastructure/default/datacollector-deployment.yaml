@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: datacollector
+  argocd-image-updater.argoproj.io/image-list: asia-east1-docker.pkg.dev/homepage-436511/docker-repo/datacollector
+  argocd-image-updater.argoproj.io/asia-east1-docker.pkg.dev/homepage-436511/docker-repo/datacollector.update-strategy: latest
 spec:
   replicas: 1
   revisionHistoryLimit: 3
