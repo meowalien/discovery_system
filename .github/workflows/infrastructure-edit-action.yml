@@ -46,7 +46,7 @@ jobs:
         uses: appleboy/ssh-action@v0.1.9
         with:
           host: 34.81.62.96
-          username: ubuntu
+          username: jackyli
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             echo "Applying file: ${{ env.TMPFILE }}"
