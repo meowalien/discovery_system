@@ -15,8 +15,9 @@ func TestQdrant(t *testing.T) {
 	// qdrantAddr := "localhost:6334" // If using `kubectl port-forward qdrant 6334:6334 -n qdrant`
 
 	client, err := qdrant.NewClient(&qdrant.Config{
-		Host: "34.81.62.96",
-		Port: 6334,
+		Host:   "34.81.62.96",
+		Port:   6334,
+		APIKey: "4tu892hl#%$^&pjo:gne;w*&(",
 	})
 
 	err = client.CreateCollection(context.Background(), &qdrant.CreateCollection{

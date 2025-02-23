@@ -6,15 +6,15 @@ metadata:
 spec:
   project: default
   source:
-      repoURL: git@github.com:meowalien/discovery_system.git
-      targetRevision: HEAD
-      path: infrastructure/qdrant
+    repoURL: git@github.com:meowalien/discovery_system.git
+    targetRevision: HEAD
+    path: infrastructure/qdrant
+    helm:
+      values: |
+        apiKey: "4tu892hl#%$^&pjo:gne;w*&("
   destination:
     server: https://kubernetes.default.svc
     namespace: qdrant
-    helm:
-      valuesObject:
-        apiKey: "thisisakey"
   syncPolicy:
     syncOptions:
     - CreateNamespace=true
