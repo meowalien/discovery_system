@@ -17,6 +17,6 @@ CONTAINER_PORT="$4"
 sudo systemctl daemon-reload
 
 # 啟用、啟動、檢查狀態
-sudo systemctl enable port-forward@$NAMESPACE-$SERVICE_NAME-$HOST_PORT-$CONTAINER_PORT.service
-sudo systemctl start port-forward@$NAMESPACE-$SERVICE_NAME-$HOST_PORT-$CONTAINER_PORT.service
-sudo systemctl status port-forward@$NAMESPACE-$SERVICE_NAME-$HOST_PORT-$CONTAINER_PORT.service
+sudo systemctl enable port-forward@$NAMESPACE:$SERVICE_NAME:$HOST_PORT:$CONTAINER_PORT.service
+sudo systemctl start port-forward@$NAMESPACE:$SERVICE_NAME:$HOST_PORT:$CONTAINER_PORT.service
+sudo systemctl status port-forward@$NAMESPACE:$SERVICE_NAME:$HOST_PORT:$CONTAINER_PORT.service
