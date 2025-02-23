@@ -1,22 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: data_collector
+  name: data-collector
 spec:
   replicas: 1
   revisionHistoryLimit: 3
   selector:
     matchLabels:
-      app: data_collector
+      app: data-collector
   template:
     metadata:
       labels:
-        app: data_collector
+        app: data-collector
     spec:
       containers:
-      - image: asia-east1-docker.pkg.dev/homepage-436511/docker-repo/data_collector:latest
-        name: data_collector
+      - image: asia-east1-docker.pkg.dev/homepage-436511/docker-repo/data-collector:latest
+        name: data-collector
         ports:
         - containerPort: 3000
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/conf/config.yaml
+          subPath: config.yaml
       imagePullSecrets:
         - name: gcp-artifact-registry
+      volumes:
+      - name: config-volume
+        configMap:
+          name: data-collector-config

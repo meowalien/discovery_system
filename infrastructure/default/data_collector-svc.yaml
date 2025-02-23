@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: data_collector
+  name: data-collector
 spec:
   ports:
   - port: 3000
     targetPort: 3000
   selector:
-    app: data_collector
+    app: data-collector

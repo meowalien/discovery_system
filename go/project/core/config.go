@@ -9,7 +9,6 @@ import (
 )
 
 type Config struct {
-	Version string `mapstructure:"version"`
 }
 
 var config atomic.Pointer[Config]
@@ -82,17 +81,16 @@ func loadConfig(c any) {
 	// 讀取檔案
 	err := viper.ReadInConfig()
 	if err != nil {
-		logrus.Fatalf("讀取 config.yaml 失敗: %v", err)
+		logrus.Fatalf("failed to read config.yaml: %v", err)
 	}
-
 	// mapstructure 會將讀取的設定檔轉換成 struct
 	err = viper.Unmarshal(c)
 	if err != nil {
-		logrus.Fatalf("解析 config.yaml 失敗: %v", err)
+		logrus.Fatalf("failed to unmarshal config: %v", err)
 	}
-
 	// 確保所有 struct 中的欄位都有在 config.yaml 中定義
-	if err := validateConfigStructure("", reflect.TypeOf(c).Elem()); err != nil {
-		logrus.Fatalf("設定檔格式錯誤: %v", err)
+	err = validateConfigStructure("", reflect.TypeOf(c).Elem())
+	if err != nil {
+		logrus.Fatalf("wrong config structure: %v", err)
 	}
 }

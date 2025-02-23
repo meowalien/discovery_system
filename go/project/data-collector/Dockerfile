@@ -32,8 +32,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 ##
 FROM alpine:3.20
 
+WORKDIR /app
+
 # Copy the compiled binary from the builder stage
-COPY --from=builder /app/myapp /usr/local/bin/myapp
+COPY --from=builder /app/myapp .
 
 # Set an entrypoint (or CMD)
-ENTRYPOINT ["/usr/local/bin/myapp"]
+ENTRYPOINT ["myapp"]
