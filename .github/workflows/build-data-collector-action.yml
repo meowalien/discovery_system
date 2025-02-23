@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - '../../go/project/datacollector/**'
+      - 'go/project/datacollector/**'
 
 jobs:
   build-and-push:
