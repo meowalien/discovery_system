@@ -35,7 +35,7 @@ jobs:
         uses: appleboy/scp-action@v0.1.4
         with:
           host: 34.81.62.96
-          username: ubuntu                       # 請換成你的使用者
+          username: jackyli
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: infrastructure/application.yaml
           target: ${{ env.TMPFILE }}             # 使用前一步產生的隨機檔名
