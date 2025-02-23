@@ -25,7 +25,7 @@ RUN go work sync
 # Build the application (embed VERSION via ldflags)
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-X main.Version=$VERSION" \
-    -o myapp ./project/data-collector
+    -o myapp ./project/datacollector
 
 ##
 # Stage 2: Final minimal image
