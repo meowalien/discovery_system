@@ -25,7 +25,8 @@ func main() {
 
 	httpEngine := http.NewHttpEngine(env.GetEnv().Mode)
 	httpEngine.Mount(http_routes.Version(Version))
-
+	httpEngine.Mount(http_routes.Collector())
+	
 	addr := fmt.Sprintf(":%s", env.GetEnv().Port)
 	go func() {
 		if err := httpEngine.Start(addr); err != nil {
