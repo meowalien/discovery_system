@@ -12,13 +12,63 @@ import (
 )
 
 type Logger interface {
-	logrus.FieldLogger
+	WithFields(fields logrus.Fields) Logger
+	WithField(key string, value interface{}) Logger
+	WithError(err error) Logger
+
+	Debugf(format string, args ...interface{})
+	Infof(format string, args ...interface{})
+	Printf(format string, args ...interface{})
+	Warnf(format string, args ...interface{})
+	Warningf(format string, args ...interface{})
+	Errorf(format string, args ...interface{})
+	Fatalf(format string, args ...interface{})
+	Panicf(format string, args ...interface{})
+
+	Debug(args ...interface{})
+	Info(args ...interface{})
+	Print(args ...interface{})
+	Warn(args ...interface{})
+	Warning(args ...interface{})
+	Error(args ...interface{})
+	Fatal(args ...interface{})
+	Panic(args ...interface{})
+
+	Debugln(args ...interface{})
+	Infoln(args ...interface{})
+	Println(args ...interface{})
+	Warnln(args ...interface{})
+	Warningln(args ...interface{})
+	Errorln(args ...interface{})
+	Fatalln(args ...interface{})
+	Panicln(args ...interface{})
 	Close() error
 }
 
 type logger struct {
 	logrus.FieldLogger
 	file *os.File
+}
+
+func (l *logger) WithFields(fields logrus.Fields) Logger {
+	return &logger{
+		FieldLogger: l.FieldLogger.WithFields(fields),
+		file:        l.file,
+	}
+}
+
+func (l *logger) WithField(key string, value interface{}) Logger {
+	return &logger{
+		FieldLogger: l.FieldLogger.WithField(key, value),
+		file:        l.file,
+	}
+}
+
+func (l *logger) WithError(err error) Logger {
+	return &logger{
+		FieldLogger: l.FieldLogger.WithError(err),
+		file:        l.file,
+	}
 }
 
 func (l *logger) Close() error {
