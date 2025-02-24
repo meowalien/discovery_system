@@ -8,11 +8,12 @@ import (
 )
 
 type Env struct {
-	Port     string   `envconfig:"PORT" default:"3000"`
-	LogLevel LogLevel `envconfig:"LOG_LEVEL" default:"info"`
-	LogFile  string   `envconfig:"LOG_FILE" default:"./log.log"`
-	Version  string   `envconfig:"VERSION" default:"unknown"`
-	Mode     Mode     `envconfig:"MODE" default:"debug"`
+	Port          string   `envconfig:"PORT" default:"3000"`
+	LogLevel      LogLevel `envconfig:"LOG_LEVEL" default:"info"`
+	LogFile       string   `envconfig:"LOG_FILE" default:"./out.log"`
+	AccessLogFile string   `envconfig:"ACCESS_LOG_FILE" default:"./access.log"`
+	Version       string   `envconfig:"VERSION" default:"unknown"`
+	Mode          Mode     `envconfig:"MODE" default:"debug"`
 }
 
 type LogLevel string
