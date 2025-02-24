@@ -3,12 +3,13 @@ package log
 import (
 	"context"
 	"core/env"
-	"core/errs"
 	"core/graceful_shutdown"
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"sync/atomic"
+	"time"
 )
 
 type Logger interface {
@@ -47,49 +48,29 @@ type Logger interface {
 
 type logger struct {
 	logrus.FieldLogger
-	file *os.File
 }
 
 func (l *logger) WithFields(fields logrus.Fields) Logger {
 	return &logger{
 		FieldLogger: l.FieldLogger.WithFields(fields),
-		file:        l.file,
 	}
 }
 
 func (l *logger) WithField(key string, value interface{}) Logger {
 	return &logger{
 		FieldLogger: l.FieldLogger.WithField(key, value),
-		file:        l.file,
 	}
 }
 
 func (l *logger) WithError(err error) Logger {
 	return &logger{
 		FieldLogger: l.FieldLogger.WithError(err),
-		file:        l.file,
 	}
 }
 
 func (l *logger) Close() error {
-	if l.file == nil {
-		return nil
-	}
-	err := l.file.Sync()
-	if err != nil {
-		return errs.New("Failed to sync log file error: %v", err)
-	}
-	err = l.file.Close()
-	if err != nil {
-		return errs.New("Failed to close log file error: %v", err)
-	}
-	return nil
+	return nil // 使用 rotatelogs 無需手動關閉文件
 }
-
-const (
-	logFileFlag             = os.O_APPEND | os.O_CREATE | os.O_WRONLY
-	logFilePerm os.FileMode = 0644
-)
 
 var globalLogger atomic.Pointer[Logger]
 
@@ -110,7 +91,7 @@ func GetGlobalLogger() Logger {
 
 func NewLogger(logLevel env.LogLevel, logPath string) Logger {
 	log := logrus.New()
-	// convert string to logrus level
+	// 轉換字串到 logrus Level
 	level, err := logrus.ParseLevel(string(logLevel))
 	if err != nil {
 		log.Fatalf("Failed to parse log level because %v", err)
@@ -121,32 +102,31 @@ func NewLogger(logLevel env.LogLevel, logPath string) Logger {
 		FullTimestamp: true,
 	})
 
-	file, err := os.OpenFile(logPath, logFileFlag, logFilePerm)
+	// 設置 rotatelogs
+	logWriter, err := rotatelogs.New(
+		logPath+"-%Y-%m-%d.log",
+		rotatelogs.WithMaxAge(7*24*time.Hour),     // 最長保留 7 天
+		rotatelogs.WithRotationTime(24*time.Hour), // 每 24 小時輪轉一次
+	)
 	if err != nil {
-		log.Fatalf("Failed to initialize log file because %v", err)
+		log.Fatalf("Failed to initialize rotatelogs because %v", err)
 	}
 
 	writers := []io.Writer{
-		file,
+		logWriter,
 		os.Stdout,
 	}
 
 	outWriter := io.MultiWriter(writers...)
-
 	log.SetOutput(outWriter)
 
 	newLogger := &logger{
 		FieldLogger: log.WithFields(logrus.Fields{}),
-		file:        file,
 	}
 
 	graceful_shutdown.AddFinalizer(func(ctx context.Context) {
-		err1 := newLogger.Close()
-		if err1 != nil {
-			logrus.Errorf("fail to close logger: %v, logPath: %s", err1, logPath)
-		} else {
-			logrus.Infof("logger closed: %s", logPath)
-		}
+		logrus.Infof("logger finalized: %s", logPath)
 	})
+
 	return newLogger
 }
