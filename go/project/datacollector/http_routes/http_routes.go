@@ -1,0 +1,22 @@
+package http_routes
+
+import (
+	"core/env"
+	"core/http"
+	"core/http/middleware"
+	"core/log"
+)
+
+func MountRoutes(httpEngine http.HTTPEngine, serverVersion string) {
+	accessLogger := log.NewLogger(env.LogLevelInfo, env.GetEnv().AccessLogFile)
+	httpEngine.Use(middleware.StartTime())
+	httpEngine.Use(middleware.Security())
+	httpEngine.Use(middleware.TraceID())
+	httpEngine.Use(middleware.Logger(log.GetGlobalLogger()))
+	httpEngine.Use(middleware.Recovery())
+	httpEngine.Use(middleware.AccessLog(accessLogger))
+
+	// list all routes here
+	httpEngine.GET("/version", middleware.LimitBodySize(middleware.BodySize0MB), version(serverVersion))
+	httpEngine.POST("/collector", middleware.LimitBodySize(middleware.BodySize2MB), collector())
+}

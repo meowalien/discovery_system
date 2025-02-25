@@ -6,11 +6,9 @@ import (
 	"time"
 )
 
-func StartTime() func(r gin.IRoutes) {
-	return func(r gin.IRoutes) {
-		r.Use(func(c *gin.Context) {
-			gin_context.RequestStartTime.Set(c, time.Now())
-			c.Next()
-		})
+func StartTime() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		gin_context.RequestStartTime.Set(c, time.Now())
+		c.Next()
 	}
 }

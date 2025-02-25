@@ -5,7 +5,6 @@ import (
 	"core/env"
 	"core/graceful_shutdown"
 	"core/http"
-	"core/http/middleware"
 	"core/log"
 	"data_collector/http_routes"
 	"fmt"
@@ -23,18 +22,10 @@ func main() {
 	fmt.Printf("config: %+v\n", config.GetConfig())
 	globalLogger := log.NewLogger(env.GetEnv().LogLevel, env.GetEnv().LogFile)
 	log.SetGlobalLogger(globalLogger)
-	accessLogger := log.NewLogger(env.LogLevelInfo, env.GetEnv().AccessLogFile)
 
 	httpEngine := http.NewHttpEngine(env.GetEnv().Mode)
 
-	httpEngine.Mount(middleware.StartTime())
-	httpEngine.Mount(middleware.TraceID())
-	httpEngine.Mount(middleware.Logger(globalLogger))
-	httpEngine.Mount(middleware.LimitBodySize(middleware.DefaultMaxBodySize))
-	httpEngine.Mount(middleware.AccessLog(accessLogger))
-
-	httpEngine.Mount(http_routes.Version(Version))
-	httpEngine.Mount(http_routes.Collector())
+	http_routes.MountRoutes(httpEngine, Version)
 
 	addr := fmt.Sprintf(":%s", env.GetEnv().Port)
 	go func() {

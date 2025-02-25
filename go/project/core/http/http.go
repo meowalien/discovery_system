@@ -14,24 +14,29 @@ import (
 )
 
 type HTTPEngine interface {
+	gin.IRoutes
 	Start(addr string) error
 	Stop(ctx context.Context) error
-	Mount(func(gin.IRoutes))
 }
 
 type httpEngine struct {
-	engine *gin.Engine
+	*gin.Engine
 	server atomic.Pointer[http.Server]
 }
+
+const ReadTimeout = 10 * time.Second
+const WriteTimeout = 10 * time.Second
+const IdleTimeout = 30 * time.Second
+const MaxHeaderBytes = 1 << 20 // 限制 header 大小為 1MB
 
 func (h *httpEngine) Start(addr string) error {
 	srv := &http.Server{
 		Addr:           addr,
-		Handler:        h.engine,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		IdleTimeout:    30 * time.Second,
-		MaxHeaderBytes: 1 << 20, // 限制 header 大小為 1MB
+		Handler:        h.Engine,
+		ReadTimeout:    ReadTimeout,
+		WriteTimeout:   WriteTimeout,
+		IdleTimeout:    IdleTimeout,
+		MaxHeaderBytes: MaxHeaderBytes, // 限制 header 大小為 1MB
 	}
 	swapped := h.server.CompareAndSwap(nil, srv)
 	if !swapped {
@@ -61,10 +66,6 @@ func (h *httpEngine) Stop(ctx context.Context) error {
 	return srv.Shutdown(ctx)
 }
 
-func (h *httpEngine) Mount(f func(gin.IRoutes)) {
-	f(h.engine)
-}
-
 func NewHttpEngine(mode env.Mode) HTTPEngine {
 	switch mode {
 	case env.ModeDebug:
@@ -76,6 +77,6 @@ func NewHttpEngine(mode env.Mode) HTTPEngine {
 	}
 
 	return &httpEngine{
-		engine: gin.Default(),
+		Engine: gin.Default(),
 	}
 }
