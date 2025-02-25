@@ -6,6 +6,7 @@ import (
 	"core/graceful_shutdown"
 	"core/http"
 	"core/log"
+	"core/qdrant"
 	"data_collector/http_routes"
 	"fmt"
 	"time"
@@ -22,10 +23,11 @@ func main() {
 	fmt.Printf("config: %+v\n", config.GetConfig())
 	globalLogger := log.NewLogger(env.GetEnv().LogLevel, env.GetEnv().LogFile)
 	log.SetGlobalLogger(globalLogger)
+	qdrant.InitQdrant()
 
-	httpEngine := http.NewHttpEngine(env.GetEnv().Mode)
+	httpEngine := http.NewHttpEngine()
 
-	http_routes.MountRoutes(httpEngine, Version)
+	http_routes.MountRoutes(httpEngine, Version, globalLogger)
 
 	addr := fmt.Sprintf(":%s", env.GetEnv().Port)
 	go func() {

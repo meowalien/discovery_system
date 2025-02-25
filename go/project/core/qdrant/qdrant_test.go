@@ -44,4 +44,5 @@ func TestQdrant(t *testing.T) {
 	if err != nil {
 		log.Fatalf("Failed to delete collection: %v", err)
 	}
+
 }

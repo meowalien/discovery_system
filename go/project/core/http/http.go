@@ -4,7 +4,6 @@ import (
 	"context"
 	"core/env"
 	"core/graceful_shutdown"
-	"core/log"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -66,14 +65,15 @@ func (h *httpEngine) Stop(ctx context.Context) error {
 	return srv.Shutdown(ctx)
 }
 
-func NewHttpEngine(mode env.Mode) HTTPEngine {
+func NewHttpEngine() HTTPEngine {
+	mode := env.GetEnv().Mode
 	switch mode {
 	case env.ModeDebug:
 		gin.SetMode(gin.DebugMode)
 	case env.ModeRelease:
 		gin.SetMode(gin.ReleaseMode)
 	default:
-		log.GetGlobalLogger().Fatalf("invalid mode: %s", mode)
+		logrus.Fatalf("invalid mode: %s", mode)
 	}
 
 	return &httpEngine{

@@ -8,11 +8,14 @@ import (
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"
-	"sync/atomic"
 	"time"
 )
 
 type Logger interface {
+	GetLevel() logrus.Level
+	GetFile() io.WriteCloser
+	GetFormatter() logrus.Formatter
+
 	WithFields(fields logrus.Fields) Logger
 	WithField(key string, value interface{}) Logger
 	WithError(err error) Logger
@@ -48,6 +51,21 @@ type Logger interface {
 
 type logger struct {
 	logrus.FieldLogger
+	logLevel  logrus.Level
+	logFile   *rotatelogs.RotateLogs
+	formatter logrus.Formatter
+}
+
+func (l *logger) GetLevel() logrus.Level {
+	return l.logLevel
+}
+
+func (l *logger) GetFile() io.WriteCloser {
+	return l.logFile
+}
+
+func (l *logger) GetFormatter() logrus.Formatter {
+	return l.formatter
 }
 
 func (l *logger) WithFields(fields logrus.Fields) Logger {
@@ -72,21 +90,13 @@ func (l *logger) Close() error {
 	return nil // 使用 rotatelogs 無需手動關閉文件
 }
 
-var globalLogger atomic.Pointer[Logger]
-
 func SetGlobalLogger(l Logger) {
-	globalLogger.Store(&l)
-}
-
-func GetGlobalLogger() Logger {
-	l := globalLogger.Load()
-	if l == nil {
-		logrus.Errorf("Global logger is nil")
-		return &logger{
-			FieldLogger: logrus.New(),
-		}
-	}
-	return *l
+	logrus.SetLevel(l.GetLevel())
+	logrus.SetOutput(io.MultiWriter([]io.Writer{
+		l.GetFile(),
+		os.Stdout,
+	}...))
+	logrus.SetFormatter(l.GetFormatter())
 }
 
 func NewLogger(logLevel env.LogLevel, logPath string) Logger {
@@ -97,10 +107,10 @@ func NewLogger(logLevel env.LogLevel, logPath string) Logger {
 		log.Fatalf("Failed to parse log level because %v", err)
 	}
 	log.SetLevel(level)
-
-	logrus.SetFormatter(&logrus.TextFormatter{
+	formatter := logrus.TextFormatter{
 		FullTimestamp: true,
-	})
+	}
+	logrus.SetFormatter(&formatter)
 
 	// 設置 rotatelogs
 	logWriter, err := rotatelogs.New(
@@ -121,10 +131,16 @@ func NewLogger(logLevel env.LogLevel, logPath string) Logger {
 	log.SetOutput(outWriter)
 
 	newLogger := &logger{
+		logLevel:    level,
+		formatter:   &formatter,
 		FieldLogger: log.WithFields(logrus.Fields{}),
 	}
 
 	graceful_shutdown.AddFinalizer(func(ctx context.Context) {
+		e := newLogger.Close()
+		if e != nil {
+			logrus.Errorf("logger close fail: %v", e)
+		}
 		logrus.Infof("logger finalized: %s", logPath)
 	})
 
