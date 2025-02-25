@@ -3,7 +3,6 @@ package middleware
 import (
 	"core/gin_context"
 	"core/log"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"math"
@@ -11,8 +10,6 @@ import (
 	"os"
 	"time"
 )
-
-var timeFormat = "02/Jan/2006:15:04:05 -0700"
 
 func AccessLog(accessLogger log.Logger) func(r gin.IRoutes) {
 	hostname, err := os.Hostname()
@@ -38,12 +35,13 @@ func AccessLog(accessLogger log.Logger) func(r gin.IRoutes) {
 			}
 
 			entry := accessLogger.WithFields(logrus.Fields{
+				"startTime":  start,
 				"traceID":    traceID,
 				"hostname":   hostname,
 				"statusCode": statusCode,
 				"latency":    latency, // time to process
 				"clientIP":   clientIP,
-				"method":     c.Request.Method,
+				"method":     method,
 				"path":       path,
 				"referer":    referer,
 				"dataLength": dataLength,
@@ -53,7 +51,7 @@ func AccessLog(accessLogger log.Logger) func(r gin.IRoutes) {
 			if len(c.Errors) > 0 {
 				entry.Error(c.Errors.ByType(gin.ErrorTypePrivate).String())
 			} else {
-				msg := fmt.Sprintf("%s - %s [%s] \"%s %s\" %d %d \"%s\" \"%s\" (%dms)", clientIP, hostname, time.Now().Format(timeFormat), method, path, statusCode, dataLength, referer, clientUserAgent, latency)
+				msg := ""
 				if statusCode >= http.StatusInternalServerError {
 					entry.Error(msg)
 				} else if statusCode >= http.StatusBadRequest {

@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"sync/atomic"
+	"time"
 )
 
 type HTTPEngine interface {
@@ -25,8 +26,12 @@ type httpEngine struct {
 
 func (h *httpEngine) Start(addr string) error {
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: h.engine,
+		Addr:           addr,
+		Handler:        h.engine,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		IdleTimeout:    30 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 限制 header 大小為 1MB
 	}
 	swapped := h.server.CompareAndSwap(nil, srv)
 	if !swapped {
@@ -34,6 +39,7 @@ func (h *httpEngine) Start(addr string) error {
 	}
 
 	graceful_shutdown.AddFinalizer(func(ctx context.Context) {
+		// stop http server gracefully when receive shutdown signal
 		if err := h.Stop(ctx); err != nil {
 			logrus.Errorf("fail to stop http server: %v", err)
 		} else {

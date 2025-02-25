@@ -1,0 +1,1 @@
+time="2025-02-24T15:14:26+08:00" level=info clientIP="::1" dataLength=21 hostname=JACKYLI--LV30H0WXL6 latency=1 method=GET path=/version referer= startTime="2025-02-24 15:14:26.380685 +0800 CST m=+2.105888418" statusCode=200 traceID=40788c04-8f4b-487f-aede-426b6dfdf80b userAgent=curl/8.7.1
