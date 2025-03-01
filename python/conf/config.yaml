@@ -1,0 +1,5 @@
+openai:
+  api_key: "sk-svcacct-wY664oP6J4gSqOoqvAmqbEj2plFzUn-kVPIIdNj2ii_YCX1fYZrkfPovUBnAta41FcwgT3BlbkFJnfMFeu8It3fzmGcTCy9k5Ta7fvtcXXtX0jyK6ZA1seF0OYEtwD85H-UBem5gdwXUdEcA"
+  model: "text-embedding-3-small"
+grpc:
+  port: 50051
