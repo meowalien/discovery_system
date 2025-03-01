@@ -14,6 +14,10 @@ type Config struct {
 		Port   int    `mapstructure:"port"`
 		APIKey string `mapstructure:"api_key"`
 	} `mapstructure:"qdrant"`
+	EmbeddingService struct {
+		Host string `mapstructure:"host"`
+		Port int    `mapstructure:"port"`
+	} `mapstructure:"embedding_service"`
 }
 
 var config atomic.Pointer[Config]
@@ -50,7 +54,7 @@ func validateConfigStructure(prefix string, configType reflect.Type) error {
 
 		// 確保 key 存在於 `config.yaml`
 		if !viper.IsSet(fullKey) {
-			return fmt.Errorf("config.yaml 缺少必要欄位: %s", fullKey)
+			return fmt.Errorf("config.yaml missing key: %s", fullKey)
 		}
 
 		// 若欄位是 struct，則遞迴檢查

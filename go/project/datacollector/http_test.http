@@ -1,0 +1,6 @@
+POST http://localhost:3000/collector
+Content-Type: application/json
+
+{"app":"test","data":{"key":"value"}}
+
+###

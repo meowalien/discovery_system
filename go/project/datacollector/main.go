@@ -2,6 +2,7 @@ package main
 
 import (
 	"core/config"
+	"core/embedding_service"
 	"core/env"
 	"core/graceful_shutdown"
 	"core/http"
@@ -24,6 +25,7 @@ func main() {
 	globalLogger := log.NewLogger(env.GetEnv().LogLevel, env.GetEnv().LogFile)
 	log.SetGlobalLogger(globalLogger)
 	qdrant.InitQdrant()
+	embedding_service.InitEmbeddingServiceClient()
 
 	httpEngine := http.NewHttpEngine()
 

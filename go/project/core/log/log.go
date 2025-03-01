@@ -100,13 +100,13 @@ func SetGlobalLogger(l Logger) {
 }
 
 func NewLogger(logLevel env.LogLevel, logPath string) Logger {
-	log := logrus.New()
+	newLog := logrus.New()
 	// 轉換字串到 logrus Level
 	level, err := logrus.ParseLevel(string(logLevel))
 	if err != nil {
-		log.Fatalf("Failed to parse log level because %v", err)
+		newLog.Fatalf("Failed to parse newLog level because %v", err)
 	}
-	log.SetLevel(level)
+	newLog.SetLevel(level)
 	formatter := logrus.TextFormatter{
 		FullTimestamp: true,
 	}
@@ -114,12 +114,12 @@ func NewLogger(logLevel env.LogLevel, logPath string) Logger {
 
 	// 設置 rotatelogs
 	logWriter, err := rotatelogs.New(
-		logPath+"-%Y-%m-%d.log",
+		logPath+"-%Y-%m-%d.newLog",
 		rotatelogs.WithMaxAge(7*24*time.Hour),     // 最長保留 7 天
 		rotatelogs.WithRotationTime(24*time.Hour), // 每 24 小時輪轉一次
 	)
 	if err != nil {
-		log.Fatalf("Failed to initialize rotatelogs because %v", err)
+		newLog.Fatalf("Failed to initialize rotatelogs because %v", err)
 	}
 
 	writers := []io.Writer{
@@ -128,12 +128,13 @@ func NewLogger(logLevel env.LogLevel, logPath string) Logger {
 	}
 
 	outWriter := io.MultiWriter(writers...)
-	log.SetOutput(outWriter)
+	newLog.SetOutput(outWriter)
 
 	newLogger := &logger{
+		logFile:     logWriter,
 		logLevel:    level,
 		formatter:   &formatter,
-		FieldLogger: log.WithFields(logrus.Fields{}),
+		FieldLogger: newLog.WithFields(logrus.Fields{}),
 	}
 
 	graceful_shutdown.AddFinalizer(func(ctx context.Context) {

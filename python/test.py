@@ -6,7 +6,7 @@ from unittest.mock import patch
 import grpc
 
 from proto import embedding_pb2, embedding_pb2_grpc
-from service.grpc_server import EmbeddingServiceServicer
+from server.grpc_server import EmbeddingServiceServicer
 # from service.embedding_service import get_embedding
 
 class TestEmbeddingServiceGRPC(unittest.TestCase):

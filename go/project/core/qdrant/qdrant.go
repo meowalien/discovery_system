@@ -28,6 +28,14 @@ func InitQdrant() {
 	if err != nil {
 		logrus.Fatalf("Failed to create qdrant client: %v", err)
 	}
+
+	// because of the way NewClient implemented, it will only print warning if server version is not compatible and will not return error
+	// so we need to check it manually
+	_, err = client.GetGrpcClient().Qdrant().HealthCheck(context.Background(), &qdrant.HealthCheckRequest{})
+	if err != nil {
+		logrus.Fatalf("Failed to connect to qdrant: %v", err)
+	}
+
 	graceful_shutdown.AddFinalizer(func(ctx context.Context) {
 		c := qdrantClient.Load()
 		if c == nil {
