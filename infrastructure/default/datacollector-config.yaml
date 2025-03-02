@@ -4,3 +4,10 @@ metadata:
   name: datacollector-config
 data:
   config.yaml: |
+    qdrant:
+      host: "qdrant.qdrant.svc.cluster.local"
+      port: 6334
+      api_key: "4tu892hl#%$^&pjo:gne;w*&("
+    embedding_service:
+      host: "embeddingservice.default.svc.cluster.local"
+      port: 50051

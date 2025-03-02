@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embeddingservice
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: embeddingservice
+    argocd-image-updater.argoproj.io/embeddingservice.update-strategy: latest
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: embeddingservice
+  template:
+    metadata:
+      labels:
+        app: embeddingservice
+    spec:
+      containers:
+      - image: asia-east1-docker.pkg.dev/homepage-436511/docker-repo/embeddingservice:latest
+        name: embeddingservice
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 50051
+          name: grpc
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/conf/config.yaml
+          subPath: config.yaml
+      imagePullSecrets:
+        - name: gcp-artifact-registry
+      volumes:
+      - name: config-volume
+        configMap:
+          name: embeddingservice-config
