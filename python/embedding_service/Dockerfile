@@ -24,4 +24,4 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # 容器啟動時執行的指令，假設主程式為 app.py
-CMD ["python", "app.py"]
+ENTRYPOINT ["python", "app.py"]
