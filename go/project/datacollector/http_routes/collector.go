@@ -18,4 +18,5 @@ func collector() gin.HandlerFunc {
 		}
 		c.JSON(200, gin.H{"embedding": embedding.Embedding})
 	}
+
 }

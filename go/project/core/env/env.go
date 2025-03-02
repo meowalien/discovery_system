@@ -12,7 +12,6 @@ type Env struct {
 	LogLevel      LogLevel `envconfig:"LOG_LEVEL" default:"info"`
 	LogFile       string   `envconfig:"LOG_FILE" default:"./out.log"`
 	AccessLogFile string   `envconfig:"ACCESS_LOG_FILE" default:"./access.log"`
-	Version       string   `envconfig:"VERSION" default:"unknown"`
 	Mode          Mode     `envconfig:"MODE" default:"debug"`
 }
 

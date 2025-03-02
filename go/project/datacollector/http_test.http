@@ -1,4 +1,4 @@
-POST http://localhost:3000/collector
+POST {{host}}/collector
 Content-Type: application/json
 
 {"app":"test","data":{"key":"value"}}
