@@ -40,7 +40,7 @@ jobs:
       - name: Build and Push Multi-Platform Image
         uses: docker/build-push-action@v4
         with:
-          context: python
+          context: python/embedding_service
           file: python/embedding_service/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
