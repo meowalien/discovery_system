@@ -8,7 +8,8 @@ import (
 )
 
 type Env struct {
-	Port          string   `envconfig:"PORT" default:"3000"`
+	HTTPPort      string   `envconfig:"HTTP_PORT" default:"3000"`
+	GRPCPort      string   `envconfig:"GRPC_PORT" default:"3001"`
 	LogLevel      LogLevel `envconfig:"LOG_LEVEL" default:"info"`
 	LogFile       string   `envconfig:"LOG_FILE" default:"./out.log"`
 	AccessLogFile string   `envconfig:"ACCESS_LOG_FILE" default:"./access.log"`

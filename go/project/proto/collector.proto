@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package collector;
+
+option go_package = "./proto";
+
+// 定義服務 CollectorService，包含一個 Collect 方法
+service CollectorService {
+  // Collect 方法接收 CollectorRequest 並回傳 CollectorResponse
+  rpc Collect(CollectorRequest) returns (CollectorResponse);
+}
+
+// 定義請求訊息，只包含一個必須的 text 欄位
+message CollectorRequest {
+  string text = 1;
+}
+
+// 定義回應訊息，包含操作後產生的 uuid 以及操作結果訊息
+message CollectorResponse {
+  string uuid = 1;
+  string result = 2;
+}

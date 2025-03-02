@@ -1,4 +1,4 @@
-package httproutes
+package httpcontroller
 
 import (
 	"core/env"

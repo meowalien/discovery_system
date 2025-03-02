@@ -1,4 +1,4 @@
-package httproutes
+package httpcontroller
 
 import (
 	"context"
@@ -55,5 +55,4 @@ func collector() gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, gin.H{"uuid": newUUID, "result": operationInfo.String()})
 	}
-
 }
