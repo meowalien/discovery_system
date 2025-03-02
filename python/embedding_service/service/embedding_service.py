@@ -1,5 +1,5 @@
 from openai import OpenAI
-from config import CONFIG
+from config.config import CONFIG
 
 api_key = CONFIG.get('openai', {}).get('api_key')
 if api_key is None:

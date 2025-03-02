@@ -2,7 +2,7 @@ from concurrent import futures
 import grpc
 from proto import embedding_pb2, embedding_pb2_grpc
 from service.embedding_service import get_embedding
-from config import CONFIG
+from config.config import CONFIG
 
 
 class EmbeddingServiceServicer(embedding_pb2_grpc.EmbeddingServiceServicer):
@@ -23,11 +23,8 @@ def serve():
     server.add_insecure_port(f'[::]:{port}')
     server.start()
     print(f"gRPC server started on port {port}")
-    try:
-        server.wait_for_termination()
-    except KeyboardInterrupt:
-        print("Keyboard interrupt received. Stopping server gracefully...")
-        server.stop(0)
+
+    server.wait_for_termination()
 
 if __name__ == '__main__':
     serve()
