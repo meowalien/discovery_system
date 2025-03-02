@@ -3,7 +3,7 @@
 ##
 # Stage 1: Build
 ##
-FROM golang:1.23.2-alpine3.20 AS builder
+FROM golang:1.24.0-alpine3.21 AS builder
 
 
 ARG VERSION
@@ -20,7 +20,7 @@ RUN go build \
     -ldflags="-X main.Version=$VERSION" \
     -o myapp ./project/datacollector
 
-FROM alpine:3.20
+FROM alpine:3.21
 WORKDIR /app
 COPY --from=builder /app/myapp .
 ENTRYPOINT ["/app/myapp"]
