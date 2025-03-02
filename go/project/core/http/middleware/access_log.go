@@ -3,8 +3,9 @@ package middleware
 import (
 	"bytes"
 	"core/errs"
-	"core/gin_context"
+	"core/gincontext"
 	"core/log"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -52,7 +53,11 @@ func (r *readCloser) ReadIfNotRead() ([]byte, error) {
 	}
 	_, err := io.Copy(r.buf, r.ReadCloser)
 	if err != nil {
-		return nil, errs.New("failed to read request body: %v", err)
+		if errors.Is(err, http.ErrBodyReadAfterClose) {
+			r.read.Store(true)
+		} else {
+			return nil, errs.New("failed to read request body: %v", err)
+		}
 	}
 	return r.buf.Bytes(), nil
 }
@@ -75,8 +80,8 @@ func AccessLog(accessLogger log.Logger) gin.HandlerFunc {
 		path := c.Request.URL.Path
 		clientIP := c.ClientIP()
 		method := c.Request.Method
-		traceID := gin_context.TraceID.Get(c)
-		start := gin_context.RequestStartTime.Get(c)
+		traceID := gincontext.TraceID.Get(c)
+		start := gincontext.RequestStartTime.Get(c)
 		stop := time.Since(start)
 		latency := int(math.Ceil(float64(stop.Nanoseconds()) / 1000000.0))
 		statusCode := c.Writer.Status()

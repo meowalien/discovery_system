@@ -7,8 +7,8 @@ import (
 	"core/graceful_shutdown"
 	"core/http"
 	"core/log"
-	"core/qdrant"
-	"data_collector/http_routes"
+	"core/qdrantclient"
+	"data_collector/httproutes"
 	"fmt"
 	"time"
 )
@@ -24,12 +24,12 @@ func main() {
 	fmt.Printf("config: %+v\n", config.GetConfig())
 	globalLogger := log.NewLogger(env.GetEnv().LogLevel, env.GetEnv().LogFile)
 	log.SetGlobalLogger(globalLogger)
-	qdrant.InitQdrant()
+	qdrantclient.InitQdrant()
 	embedding_service.InitEmbeddingServiceClient()
 
 	httpEngine := http.NewHttpEngine()
 
-	http_routes.MountRoutes(httpEngine, Version, globalLogger)
+	httproutes.MountRoutes(httpEngine, Version, globalLogger)
 
 	addr := fmt.Sprintf(":%s", env.GetEnv().Port)
 	go func() {

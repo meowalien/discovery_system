@@ -1,6 +1,6 @@
 POST {{host}}/collector
 Content-Type: application/json
 
-{"app":"test","data":{"key":"value"}}
+{"text":"test"}
 
 ###

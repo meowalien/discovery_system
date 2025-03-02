@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"core/gin_context"
+	"core/gincontext"
 	"core/log"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -9,8 +9,8 @@ import (
 
 func Logger(logger log.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		traceID := gin_context.TraceID.Get(c)
-		requestStartTime := gin_context.RequestStartTime.Get(c)
+		traceID := gincontext.TraceID.Get(c)
+		requestStartTime := gincontext.RequestStartTime.Get(c)
 		realIP := c.ClientIP()
 
 		logger = logger.WithFields(logrus.Fields{
@@ -21,6 +21,6 @@ func Logger(logger log.Logger) gin.HandlerFunc {
 			"StartTime": requestStartTime,
 		})
 
-		gin_context.Logger.Set(c, logger)
+		gincontext.Logger.Set(c, logger)
 	}
 }

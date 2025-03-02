@@ -43,7 +43,8 @@ jobs:
           context: python/embedding_service
           file: python/embedding_service/Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64
+#          linux/arm64
+          platforms: linux/amd64
           tags: |
             asia-east1-docker.pkg.dev/homepage-436511/docker-repo/embeddingservice:${{ env.VERSION }}
             asia-east1-docker.pkg.dev/homepage-436511/docker-repo/embeddingservice:latest

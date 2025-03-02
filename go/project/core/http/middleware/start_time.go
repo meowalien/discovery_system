@@ -1,14 +1,14 @@
 package middleware
 
 import (
-	"core/gin_context"
+	"core/gincontext"
 	"github.com/gin-gonic/gin"
 	"time"
 )
 
 func StartTime() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		gin_context.RequestStartTime.Set(c, time.Now())
+		gincontext.RequestStartTime.Set(c, time.Now())
 		c.Next()
 	}
 }

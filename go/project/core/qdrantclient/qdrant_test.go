@@ -1,4 +1,4 @@
-package qdrant
+package qdrantclient
 
 import (
 	"context"
