@@ -2,3 +2,4 @@
 /go/access.log*
 /.idea
 /python/embedding_service/.venv/
+/python/telegram_reader/.venv/
