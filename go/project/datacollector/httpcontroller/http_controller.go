@@ -18,5 +18,5 @@ func MountRoutes(httpEngine http.HTTPEngine, serverVersion string, globalLogger 
 
 	// list all routes here
 	httpEngine.GET("/version", middleware.LimitBodySize(middleware.BodySize0MB), version(serverVersion))
-	httpEngine.POST("/collector", collector())
+	httpEngine.POST("/collect", collect())
 }

@@ -11,13 +11,15 @@ import (
 	"github.com/qdrant/go-client/qdrant"
 	"net/http"
 	"proto"
+	"time"
 )
 
-func collector() gin.HandlerFunc {
+func collect() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		embeddingService := embedding_service.GetClient()
 		var requestBody struct {
-			Text string `json:"text" binding:"required"`
+			Text string    `json:"text" binding:"required"`
+			Time time.Time `json:"time" binding:"required"`
 		}
 		if err := c.ShouldBindJSON(&requestBody); err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -32,7 +34,7 @@ func collector() gin.HandlerFunc {
 			return
 		}
 		newUUID := uuid.NewSHA1(constant.DiscoverySystemNameSpaceUUID, []byte(requestBody.Text)).String()
-
+	
 		client := qdrantclient.GetClient()
 
 		// add embedding to discovery_system collection
