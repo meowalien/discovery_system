@@ -1,6 +1,35 @@
 POST {{host}}/collector
 Content-Type: application/json
 
-{"text":""}
+{"text":"美國總統川普（Donald Trump）與烏克蘭總統澤倫斯基（Volodymyr Zelenskyy）2月28日在白宮不歡而散。如今事隔3天，川普3日在自家社群媒體Truth Social上發文強調，「唯一沒把烏克蘭領土交給普丁的總統就是川普」，幾分鐘後又貼文預告，明晚將宣布一件大事。由於貼文時間相近，是否攸關俄烏戰爭，引發外界關注。"}
+
 
 ###
+POST {{host}}/collector
+Content-Type: application/json
+
+{"text":"體育"}
+
+
+###
+
+POST {{host}}/collector
+Content-Type: application/json
+
+{"text":"政治"}
+
+
+###
+
+POST {{host}}/collector
+Content-Type: application/json
+
+{"text":"股票"}
+
+
+###
+POST {{host}}/collector
+Content-Type: application/json
+
+{"text":"上周五空頭平倉。週末本來都是悲觀消息，突然樂觀是因為川普喊加密"}
+

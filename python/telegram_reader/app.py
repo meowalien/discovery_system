@@ -1,8 +1,14 @@
 from telethon import TelegramClient, events, utils
+import yaml
 
-# Remember to use your own values from my.telegram.org!
-api_id = 24529225
-api_hash = '0abc06cc13bab8c228b59bcca4284800'
+
+# 從 config.yaml 中讀取 API 憑證
+with open("config.yaml", "r", encoding="utf-8") as file:
+    config = yaml.safe_load(file)
+
+api_id = config["api_id"]
+api_hash = config["api_hash"]
+
 client = TelegramClient('anon', api_id, api_hash)
 
 async def main():
