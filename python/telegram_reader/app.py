@@ -27,8 +27,8 @@ async def main():
     # print(me.phone)
 
     # You can print all the dialogs/conversations that you are part of:
-    async for dialog in client.iter_dialogs():
-        print(dialog.name, 'has ID', dialog.id)
+    # async for dialog in client.iter_dialogs():
+    #     print(dialog.name, 'has ID', dialog.id)
 
     # You can send messages to yourself...
     # await client.send_message('me', 'Hello, myself!')
@@ -58,13 +58,15 @@ async def main():
 
     # filter messages from group 1001301096229
     @client.on(events.NewMessage(chats=-1001140512009))
-    async def handler(event):
+    async def handler(event: events.NewMessage.Event):
         sender = await event.get_sender()
 
         first_name = sender.first_name if sender.first_name is not None else ''
         last_name = sender.last_name if sender.last_name is not None else ''
         fill_name = first_name + last_name
 
+        date = event.date
+        print("date: ",date)
         print("source_name: ",sender)
         print("event: ", event)
         print(f"股癌美股夜貓仔 {fill_name}: {event.raw_text}")
@@ -78,6 +80,8 @@ async def main():
         first_name = sender.first_name if sender.first_name is not None else ''
         last_name = sender.last_name if sender.last_name is not None else ''
         fill_name = first_name + last_name
+        date = event.date
+        print("date: ", date)
         print("source_name: ",sender)
         print("event: ",event)
         print(f"股癌台股世界大哥 -> {fill_name}: {event.raw_text}")
