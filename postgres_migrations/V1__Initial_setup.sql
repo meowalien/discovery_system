@@ -1,0 +1,1 @@
+CREATE DATABASE discovery_system;
