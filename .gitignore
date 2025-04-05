@@ -1,7 +1,5 @@
 /go/out.log*
 /go/access.log*
 /.idea
-/python/embedding_service/.venv/
-/python/telegram_reader/.venv/
 /project/python/embedding_service/.venv/
 /project/python/telegram_reader/.venv/

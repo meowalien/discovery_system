@@ -19,6 +19,7 @@ services:
     ports:
       - "9092:9092"
       - "9093:9093"
+    restart: always
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -30,6 +31,7 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    restart: always
 
   # PostgreSQL (提供給 Temporal 與 Debezium 使用)
   postgres:
@@ -37,11 +39,12 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: temporal
+      POSTGRES_DB: discovery_system
     # 啟用 logical replication 所需的參數
     command: ["postgres", "-c", "wal_level=logical", "-c", "max_replication_slots=10"]
     ports:
       - "5432:5432"
+    restart: always
 
   # Temporal Server (使用 auto-setup 模式，自動建立所需 schema)
   temporal:
@@ -57,6 +60,7 @@ services:
     image: temporalio/auto-setup:latest
     ports:
       - 7233:7233
+    restart: always
 
   temporal-admin-tools:
     container_name: temporal-admin-tools
@@ -68,6 +72,7 @@ services:
     image: temporalio/admin-tools:latest
     stdin_open: true
     tty: true
+    restart: always
 
   temporal-ui:
     container_name: temporal-ui
@@ -79,12 +84,14 @@ services:
     image: temporalio/ui:latest
     ports:
       - 8080:8080
+    restart: always
 
   # Qdrant 向量資料庫
   qdrant:
     image: qdrant/qdrant
     ports:
       - "6333:6333"
+    restart: always
 
   # Debezium Kafka Connect (用於監聽 PostgreSQL 的變更)
   debezium:
@@ -107,3 +114,11 @@ services:
       - postgres
     ports:
       - "8083:8083"
+    restart: always
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: always
