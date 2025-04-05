@@ -8,11 +8,11 @@
 
 In POC stage, we will deploy and run these service in Docker
 
-* [ ]  Deploy Kafka
-* [ ]  Deploy PostgresSQL
-* [ ]  Deploy Tempporal
-* [ ]  Deploy Qdrant
-* [ ]  Deploy Debezium
+* [x]  Deploy Kafka
+* [x]  Deploy PostgresSQL
+* [x]  Deploy Tempporal
+* [x]  Deploy Qdrant
+* [x]  Deploy Debezium
 * [ ]  Implement TelegramReader
 * [ ]  Implement Data Integration Service
 * [ ]  Implement EmbeddingService
