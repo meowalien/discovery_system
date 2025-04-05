@@ -1,0 +1,7 @@
+redis:
+  host: "localhost"
+  port: 6379
+  db: 0
+
+postgres:
+  url: "postgresql://postgres:postgres@localhost:5432/discovery_system"
