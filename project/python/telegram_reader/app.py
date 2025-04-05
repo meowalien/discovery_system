@@ -1,137 +1,145 @@
-import asyncio
-from telethon import TelegramClient, events, utils
-import yaml
 
 from session_model import PostgresSession
 
+import json
+import uuid
 
-async def main():
-    # 從 config.yaml 中讀取 API 憑證
-    with open("config.yaml", "r", encoding="utf-8") as file:
-        config = yaml.safe_load(file)
-
-    api_id = config["api_id"]
-    api_hash = config["api_hash"]
-    phone = '+886968893589'
-    password = 'kingkingjin'
-
-    db_url = "postgresql://postgres:postgres@localhost:5432/discovery_system"
-
-    session = PostgresSession(db_url=db_url, session_name=phone)
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from telethon import TelegramClient, errors
+import redis.asyncio as redis
+import uvicorn
+from contextlib import asynccontextmanager
 
 
-    # 使用 async with 自動管理 TelegramClient 連線
-    async with TelegramClient(session, api_id, api_hash) as client:
+
+
+# 建立 Redis 連線 (請確認 Redis 服務正在執行)
+redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+# ping redis_client
+async def ping_redis():
+    try:
+        await redis_client.ping()
+        print("Redis connection successful")
+    except redis.ConnectionError:
+        print("Redis connection failed")
+
+from sqlalchemy import  create_engine
+db_url = "postgresql://postgres:postgres@localhost:5432/discovery_system"
+postgres_engine = create_engine(db_url)
+
+from sqlalchemy import text
+
+async def ping_postgres():
+    try:
+        # 使用 SQLAlchemy 的 engine 來 ping 資料庫
+        with postgres_engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        print("Postgres connection successful")
+    except Exception as e:
+        print(f"Postgres connection failed: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await ping_redis()
+    await ping_postgres()
+    yield
+    await redis_client.close()
+
+
+app = FastAPI(lifespan=lifespan)
+
+# 定義 API 請求的資料模型
+class InitSignInRequest(BaseModel):
+    api_id: int
+    api_hash: str
+    phone: str
+    password: str
+
+class CodeSignInRequest(BaseModel):
+    session_id: str
+    code: str
+
+@app.post("/signin/init")
+async def init_sign_in(req: InitSignInRequest):
+    """
+    第一個 API：
+    - 傳入 api_id, api_hash, phone, password
+    - 建立 TelegramClient 並呼叫 sign_in(password)
+    - 將參數存入 Redis，並回傳一個 session_id
+    """
+    print('req: ',req)
+    session = PostgresSession(engine=postgres_engine, session_name=req.phone)
+    # 使用 MemorySession (預設為 None 會用 MemorySession)
+    client = TelegramClient(session, req.api_id, req.api_hash)
+    try:
+        await client.connect()
+
+        # 如果尚未授權則進行密碼登入（若已授權則不會重複登入）
         if not await client.is_user_authorized():
-            # 嘗試以密碼登入
-            await client.sign_in(phone=phone, password=password)
-            try:
-                code = input('enter code: ')
-                await client.sign_in(phone=phone, code=code)
-                me = await client.get_me()
-                print(f'Successfully signed in as: {me.first_name} {me.last_name}')
-            except Exception as e:
-                print(f'Sign-in failed: {e}')
-        async for dialog in client.iter_dialogs():
-            print(dialog.name, 'has ID', dialog.id)
+            phone_code_hash = await client.send_code_request(req.phone)
+            # 產生一個 session_id 並儲存參數至 Redis
+            session_id = str(uuid.uuid4())
+            session_data = {
+                "api_id": req.api_id,
+                "api_hash": req.api_hash,
+                "phone": req.phone,
+                "password": req.password,
+                "phone_code_hash": phone_code_hash.phone_code_hash
+            }
+            await redis_client.set(f"session:{session_id}", json.dumps(session_data))
 
-if __name__ == '__main__':
-    asyncio.run(main())
+            return {"status": "need_code", "session_id": session_id}
+        else:
+            # 如果已經授權，則直接登入
+            await client.sign_in(phone=req.phone, password=req.password)
+            me = await client.get_me()
+            return {"status": "success", "user": f"{me.first_name} {me.last_name}"}
 
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        await client.disconnect()
+@app.post("/signin/code")
+async def sign_in_code(req: CodeSignInRequest):
+    """
+    第二個 API：
+    - 傳入 session_id 與 code
+    - 從 Redis 取出之前的參數
+    - 使用這些參數建立 TelegramClient，並以 code 進行後續登入
+    """
+    session_key = f"session:{req.session_id}"
+    session_data_str = await redis_client.get(session_key)
+    if not session_data_str:
+        raise HTTPException(status_code=404, detail="Session not found")
 
-#     # Getting information about yourself
-#     # me = await client.get_me()
-#
-#     # "me" is a user object. You can pretty-print
-#     # any Telegram object with the "stringify" method:
-#     # print(me.stringify())
-#
-#     # When you print something, you see a representation of it.
-#     # You can access all attributes of Telegram objects with
-#     # the dot operator. For example, to get the username:
-#     # username = me.username
-#     # print(username)
-#     # print(me.phone)
-#
-#     # You can print all the dialogs/conversations that you are part of:
-#     # async for dialog in client.iter_dialogs():
-#     #     print(dialog.name, 'has ID', dialog.id)
-#
-#     # You can send messages to yourself...
-#     # await client.send_message('me', 'Hello, myself!')
-#     # ...to some chat ID
-#     # await client.send_message(-100123456, 'Hello, group!')
-#     # # ...to your contacts
-#     # await client.send_message('+34600123123', 'Hello, friend!')
-#     # # ...or even to any username
-#     # await client.send_message('username', 'Testing Telethon!')
-#
-#     # You can, of course, use markdown in your messages:
-#     # message = await client.send_message(
-#     #     'me',
-#     #     'This message has **bold**, `code`, __italics__ and '
-#     #     'a [nice website](https://example.com)!',
-#     #     link_preview=False
-#     # )
-#
-#     # Sending a message returns the sent message object, which you can use
-#     # print(message.raw_text)
-#
-#     # You can reply to messages directly if you have a message object
-#     # await message.reply('Cool!')
-#
-#     # Or send files, songs, documents, albums...
-#     # await client.send_file('me', '/home/me/Pictures/holidays.jpg')
-#
-#     # filter messages from group 1001301096229
-#     @client.on(events.NewMessage(chats=-1001140512009))
-#     async def handler(event: events.NewMessage.Event):
-#         sender = await event.get_sender()
-#
-#         first_name = sender.first_name if sender.first_name is not None else ''
-#         last_name = sender.last_name if sender.last_name is not None else ''
-#         fill_name = first_name + last_name
-#
-#         date = event.date
-#         print("date: ",date)
-#         print("source_name: ",sender)
-#         print("event: ", event)
-#         print(f"股癌美股夜貓仔 {fill_name}: {event.raw_text}")
-#
-#
-#
-#     # filter messages from group 1001301096229
-#     @client.on(events.NewMessage(chats=-1001301096229))
-#     async def handler(event):
-#         sender = await event.get_sender()
-#         first_name = sender.first_name if sender.first_name is not None else ''
-#         last_name = sender.last_name if sender.last_name is not None else ''
-#         fill_name = first_name + last_name
-#         date = event.date
-#         print("date: ", date)
-#         print("source_name: ",sender)
-#         print("event: ",event)
-#         print(f"股癌台股世界大哥 -> {fill_name}: {event.raw_text}")
-#
-#     await client.start()
-#     print("Telegram 客戶端已啟動，正在監聽消息...")
-#
-#
-#     await client.run_until_disconnected()
-#
-#
-#     # You can print the message history of any chat:
-#     # async for message in client.iter_messages(1001301096229):
-#     #     print(message.id, message.text)
-#
-#         # You can download media from messages, too!
-#         # The method will return the path where the file was saved.
-#         # if message.photo:
-#         #     path = await message.download_media()
-#         #     print('File saved to', path)  # printed after download is done
-#
-# with client:
-#     try:
-#         client.loop.run_until_complete(main())
-#     except KeyboardInterrupt:
-#         print("KeyboardInterrupt received. Exiting...")
+    session_data = json.loads(session_data_str)
+    api_id = session_data.get("api_id")
+    api_hash = session_data.get("api_hash")
+    phone = session_data.get("phone")
+    phone_code_hash = session_data.get("phone_code_hash")
+    password = session_data.get("password")
+    session = PostgresSession(engine=postgres_engine, session_name=phone)
+    print('phone_code_hash: ',phone_code_hash)
+    try:
+        client = TelegramClient(session, api_id, api_hash)
+        await client.connect()
+        try:
+            # 使用 code 繼續登入
+            await client.sign_in(phone=phone, password=password, code=req.code, phone_code_hash=phone_code_hash)
+        except errors.SessionPasswordNeededError:
+            # 如果需要密碼，則使用密碼登入
+            await client.sign_in(password=password)
+        # delete Redis 中的 session 資料
+        await redis_client.delete(session_key)
+        # 取得登入使用者資訊
+        me = await client.get_me()
+        await client.disconnect()
+        return {"status": "success", "user": f"{me.first_name} {me.last_name}"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+if __name__ == "__main__":
+    # 使用 uvicorn 啟動 HTTP server
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+

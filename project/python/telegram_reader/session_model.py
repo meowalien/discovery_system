@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, LargeBinary, create_engine
+from sqlalchemy import Column, String, LargeBinary, create_engine, Engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -15,11 +15,12 @@ from telethon.sessions import MemorySession
 from telethon.sessions.abstract import Session
 
 class PostgresSession(Session):
-    def __init__(self, db_url: str, session_name: str = "default"):
+    def __init__(self, engine:Engine, session_name: str = "default"):
         super().__init__()
-        self.db_url = db_url
+
         self.session_name = session_name
-        self._engine = create_engine(db_url)
+        self._engine = engine
+
         self._Session = sessionmaker(bind=self._engine)
         Base.metadata.create_all(self._engine)
 
@@ -52,7 +53,7 @@ class PostgresSession(Session):
         """
         Creates a clone of this session file.
         """
-        return to_instance or self.__class__(self.db_url, self.session_name)
+        return to_instance or self.__class__(self._engine, self.session_name)
 
     def set_dc(self, dc_id, server_address, port):
         """
