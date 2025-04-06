@@ -23,7 +23,7 @@ async def init_sign_in(api_id: int, api_hash: str, phone: str, password: str) ->
       - Saves session information in Redis and returns a session_id.
       - If already authorized, signs in directly.
     """
-    session =PostgresSession()
+    session =PostgresSession(engine=postgres_engine, session_id=phone)
     client = TelegramClient(session, api_id, api_hash)
     await client.connect()
 
@@ -52,7 +52,7 @@ async def complete_sign_in(session_data: TelethonLoginSessionData, code: str) ->
     phone = session_data.phone
     password = session_data.password
     phone_code_hash = session_data.phone_code_hash
-    session = PostgresSession()
+    session =PostgresSession(engine=postgres_engine, session_id=phone)
     client = TelegramClient(session, api_id, api_hash)
     await client.connect()
     try:

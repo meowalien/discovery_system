@@ -1,5 +1,5 @@
-from sqlalchemy import create_engine, Column, Integer, Text, LargeBinary, inspect, BigInteger
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import create_engine, Column, Integer, Text, LargeBinary, inspect, BigInteger, Engine
+from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from telethon import types, utils
 from telethon.tl.types import InputPhoto, InputDocument, PeerUser, PeerChat, PeerChannel
 from telethon.crypto import AuthKey
@@ -8,12 +8,7 @@ from telethon.sessions.memory import _SentFileType
 import datetime
 import time
 
-from db import postgres_engine
 
-# 使用外部定義的 engine（例如：postgres_engine = create_engine(POSTGRES_URL)）
-# 如果需要使用其他 DSN，可在初始化時傳入 session_dsn
-# postgres_engine = create_engine(POSTGRES_URL)
-SessionFactory = sessionmaker(bind=postgres_engine)
 
 # 定義 ORM 的 Base 與各個資料表模型
 Base = declarative_base()
@@ -22,9 +17,11 @@ class Version(Base):
     __tablename__ = 'version'
     version = Column(Integer, primary_key=True)
 
+# 修改 SessionModel，加入 session_id 以區分不同使用者
 class SessionModel(Base):
     __tablename__ = 'sessions'
-    dc_id = Column(Integer, primary_key=True)
+    session_id = Column(Text, primary_key=True)  # 新增欄位，作為使用者唯一識別
+    dc_id = Column(Integer)
     server_address = Column(Text)
     port = Column(Integer)
     auth_key = Column(LargeBinary)
@@ -65,16 +62,17 @@ class PostgresSession(MemorySession):
     使用 PostgreSQL 資料庫儲存 Telegram 登入與狀態資訊，
     請妥善保管資料庫連線資訊以免資料外洩。
     """
-    def __init__(self, session_dsn=None):
-        print(f"Entering __init__ with session_dsn={session_dsn}")
+
+    def __init__(self, engine, session_id: str):
+        print(f"Entering __init__ with session_id={session_id}")
         super().__init__()
         self.save_entities = True
-        # 若傳入 session_dsn 則建立新的 engine，否則使用全域的 postgres_engine
-        self.connection_dsn = session_dsn if session_dsn else None
-        self.engine = create_engine(session_dsn) if session_dsn else postgres_engine
-        self.db = SessionFactory(bind=self.engine)
+        self.session_id = session_id  # 用以區分不同使用者的 session
+        self.engine = engine  # 傳入的 SQLAlchemy Engine
+        self.db = Session(bind=self.engine)
 
         inspector = inspect(self.engine)
+        # 檢查資料表是否存在
         if 'version' in inspector.get_table_names():
             # 資料表已存在，檢查版本
             ver_obj = self.db.query(Version).first()
@@ -82,16 +80,20 @@ class PostgresSession(MemorySession):
                 self._upgrade_database(ver_obj.version)
                 ver_obj.version = CURRENT_VERSION
                 self.db.commit()
-            # 載入 sessions 資料
-            session_obj = self.db.query(SessionModel).first()
+            # 載入當前使用者的 session 資料（利用 session_id 區分）
+            session_obj = self.db.query(SessionModel).filter(SessionModel.session_id == self.session_id).first()
             if session_obj:
                 self._dc_id = session_obj.dc_id
                 self._server_address = session_obj.server_address
                 self._port = session_obj.port
                 self._takeout_id = session_obj.takeout_id
                 self._auth_key = AuthKey(data=session_obj.auth_key) if session_obj.auth_key else None
+            else:
+                # 尚未建立此使用者的 session，做初始化
+                self._initialize_session()
+                self.db.commit()
         else:
-            # 資料表不存在，建立所有必要的資料表
+            # 資料表不存在，建立所有必要的資料表，並初始化當前 session
             Base.metadata.create_all(self.engine)
             ver_obj = Version(version=CURRENT_VERSION)
             self.db.add(ver_obj)
@@ -100,7 +102,7 @@ class PostgresSession(MemorySession):
         print("Exiting __init__")
 
     def _initialize_session(self):
-        # 根據實際需求初始化 dc 及其他欄位（預設值可自行調整）
+        # 根據實際需求初始化 dc 及其他欄位（此處可依需要調整預設值）
         self._dc_id = 0
         self._server_address = ''
         self._port = 0
@@ -110,7 +112,6 @@ class PostgresSession(MemorySession):
 
     def _upgrade_database(self, old):
         print(f"Entering _upgrade_database with old={old}")
-        # 使用原始 SQL 指令升級資料表結構
         with self.engine.connect() as conn:
             if old == 1:
                 old += 1
@@ -149,7 +150,7 @@ class PostgresSession(MemorySession):
         print(f"Entering set_dc with dc_id={dc_id}, server_address={server_address}, port={port}")
         super().set_dc(dc_id, server_address, port)
         self._update_session_table()
-        session_obj = self.db.query(SessionModel).first()
+        session_obj = self.db.query(SessionModel).filter(SessionModel.session_id == self.session_id).first()
         if session_obj and session_obj.auth_key:
             self._auth_key = AuthKey(data=session_obj.auth_key)
         else:
@@ -172,10 +173,11 @@ class PostgresSession(MemorySession):
 
     def _update_session_table(self):
         print("Entering _update_session_table")
-        # 為簡化邏輯，先刪除所有 sessions 資料，再插入一筆新的記錄
-        self.db.query(SessionModel).delete()
+        # 先刪除當前 session_id 的記錄，再插入新的資料
+        self.db.query(SessionModel).filter(SessionModel.session_id == self.session_id).delete()
         auth_key_data = self._auth_key.key if self._auth_key else b''
         session_obj = SessionModel(
+            session_id=self.session_id,
             dc_id=self._dc_id,
             server_address=self._server_address,
             port=self._port,
