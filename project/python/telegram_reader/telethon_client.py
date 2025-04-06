@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from telethon import TelegramClient, errors
 from models import TelethonLoginSessionData
-from session_model import PostgresSession
+from postgres_session import PostgresSession
 from db import postgres_engine
 from typing import Optional
 
@@ -23,7 +23,8 @@ async def init_sign_in(api_id: int, api_hash: str, phone: str, password: str) ->
       - Saves session information in Redis and returns a session_id.
       - If already authorized, signs in directly.
     """
-    client = TelegramClient(PostgresSession(engine=postgres_engine, session_name=phone), api_id, api_hash)
+    session =PostgresSession()
+    client = TelegramClient(session, api_id, api_hash)
     await client.connect()
 
     try:
@@ -51,8 +52,8 @@ async def complete_sign_in(session_data: TelethonLoginSessionData, code: str) ->
     phone = session_data.phone
     password = session_data.password
     phone_code_hash = session_data.phone_code_hash
-
-    client = TelegramClient(PostgresSession(engine=postgres_engine, session_name=phone), api_id, api_hash)
+    session = PostgresSession()
+    client = TelegramClient(session, api_id, api_hash)
     await client.connect()
     try:
         try:
@@ -75,7 +76,8 @@ async def list_dialogs(api_id: int, api_hash: str, phone: str) -> list:
       - Connects to Telegram using the provided credentials.
       - Returns a list of dialog names and IDs.
     """
-    client = TelegramClient(PostgresSession(engine=postgres_engine, session_name=phone), api_id, api_hash)
+    session = PostgresSession(engine=postgres_engine, session_name=phone)
+    client = TelegramClient(session, api_id, api_hash)
     await client.connect()
     try:
         dialogs = []
