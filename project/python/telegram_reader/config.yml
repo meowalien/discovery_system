@@ -5,3 +5,8 @@ redis:
 
 postgres:
   url: "postgresql://postgres:postgres@localhost:5432/discovery_system"
+
+http:
+  host: "0.0.0.0"
+  port:  8002
+  log_level: "debug"

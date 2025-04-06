@@ -1,4 +1,3 @@
-# app/redis_client.py
 import redis.asyncio as redis
 from config import REDIS_HOST, REDIS_PORT, REDIS_DB
 
@@ -14,3 +13,18 @@ async def ping_redis():
         print("Redis connection successful")
     except redis.ConnectionError:
         print("Redis connection failed")
+
+def new_redis_key(*keys: str) -> str:
+    """
+    Generate a new Redis key by concatenating the provided keys with a colon.
+    Accepts an arbitrary number of string arguments.
+    """
+    return ":".join(keys)
+
+
+# key enum
+class RedisKey:
+    """
+    Enum-like class to define Redis keys.
+    """
+    SESSION = "session"

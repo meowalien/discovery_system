@@ -1,7 +1,7 @@
 import requests
 
-BASE_URL = "http://localhost:8000"
-
+# BASE_URL = "http://localhost:80/telegram_reader"
+BASE_URL = "http://localhost:8002"
 def sign_in_init(api_id, api_hash, phone, password):
     url = f"{BASE_URL}/signin/init"
     payload = {
@@ -12,19 +12,9 @@ def sign_in_init(api_id, api_hash, phone, password):
     }
     response = requests.post(url, json=payload)
     if response.status_code != 200:
-        print("Error during init sign in:", response.text)
-        return None
+        raise Exception(f"Error during sign-in initialization: {response.text}")
     data = response.json()
-    status = data.get("status")
-
-    match status:
-        case "need_code":
-            return data.get("session_id")
-
-        case "success":
-            return None
-
-
+    return data
 
 
 def sign_in_code(session_id, code):
@@ -35,8 +25,7 @@ def sign_in_code(session_id, code):
     }
     response = requests.post(url, json=payload)
     if response.status_code != 200:
-        print("Error during code sign in:", response.text)
-        return None
+        raise Exception(f"Error during sign-in with code: {response.text}")
     return response.json()
 
 def main():
@@ -47,11 +36,19 @@ def main():
     password ='kingkingjin' #input("Enter password: ")
 
     # 第一步：初始化登入並獲取 session_id
-    session_id = sign_in_init(api_id, api_hash, phone, password)
-    if session_id is None:
-        print("Login successful. No code needed.")
-        return
+    data = sign_in_init(api_id, api_hash, phone, password)
+    session_id = None
+    print("data: ",data)
+    match data.get("status"):
+        case "need_code":
+            session_id = data.get("session_id")
 
+        case "success":
+            print('Already signed in:', data.get("user"))
+            return
+
+    if session_id is None:
+        raise Exception("Session ID not found in response.")
     print("Session initiated. Session ID:", session_id)
 
     # 第二步：輸入 code，完成登入

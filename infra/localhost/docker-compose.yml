@@ -122,3 +122,37 @@ services:
     ports:
       - "6379:6379"
     restart: always
+
+  reverse-proxy:
+    image: traefik:v2.11
+    command:
+      - "--api.insecure=true"                      # 啟用 dashboard
+      - "--providers.docker=true"                  # 開啟 docker provider
+      - "--entrypoints.web.address=:80"            # 開一個 web 入口
+    ports:
+      - "80:80"                                     # 對外 port
+      - "8000:8080"                                 # Dashboard port
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock" # 用來監聽 docker
+
+  telegram_reader:
+    image: telegram_reader
+    labels:
+      - "traefik.enable=true"
+      # 所有 URL 前綴為 /telegram_reader 都會匹配此路由器
+      - "traefik.http.routers.telegram_reader.rule=PathPrefix(`/telegram_reader`)"
+      - "traefik.http.routers.telegram_reader.entrypoints=web"
+      # 設定中介件：移除 URL 前綴 /telegram_reader，轉發到容器內對應的路由
+      - "traefik.http.middlewares.telegram_reader-strip.stripprefix.prefixes=/telegram_reader"
+      - "traefik.http.routers.telegram_reader.middlewares=telegram_reader-strip"
+      # 指定容器內服務的對外端口，例如服務內部以 8000 執行
+      - "traefik.http.services.telegram_reader.loadbalancer.server.port=8001"
+    volumes:
+#      mount telegram_reader_config:/app/config
+      - ./telegram_reader/config.yml:/app/config.yml
+    depends_on:
+      - redis
+      - postgres
+    ports:
+      - "8001:8001"
+    restart: always

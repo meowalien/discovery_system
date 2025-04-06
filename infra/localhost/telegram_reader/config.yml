@@ -1,0 +1,12 @@
+redis:
+  host: "redis"
+  port: 6379
+  db: 0
+
+postgres:
+  url: "postgresql://postgres:postgres@postgres:5432/discovery_system"
+
+http:
+  host: "0.0.0.0"
+  port:  8001
+  log_level: "debug"

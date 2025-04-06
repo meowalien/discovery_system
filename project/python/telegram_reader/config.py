@@ -1,4 +1,3 @@
-# app/config.py
 import os
 import yaml
 
@@ -20,3 +19,13 @@ REDIS_DB = int(redis_config.get("db", 0))
 # Read PostgreSQL configuration from the config file, with a default value as fallback
 postgres_config = config.get("postgres", {})
 POSTGRES_URL = postgres_config.get("url", "postgresql://postgres:postgres@localhost:5432/discovery_system")
+
+
+# http:
+#   host: "0.0.0.0"
+#   port:  8001
+#   log_level: "debug"
+http = config.get("http", {})
+port = int(http.get("port", 8001))
+log_level = http.get("log_level", "debug")
+host = http.get("host", "0.0.0.0")

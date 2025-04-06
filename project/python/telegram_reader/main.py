@@ -1,12 +1,12 @@
-# app/main.py
 import json
 from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 import uvicorn
-from models import InitSignInRequest, CodeSignInRequest
+from models import InitSignInRequest, CodeSignInRequest, TelethonLoginSessionData
 from redis_client import redis_client, ping_redis
 from db import ping_postgres
-from telethon_client import init_sign_in, complete_sign_in
+from session import new_session, Session
+from telethon_client import init_sign_in, complete_sign_in, InitSignInStatus
 
 
 @asynccontextmanager
@@ -33,10 +33,26 @@ async def init_sign_in_endpoint(req: InitSignInRequest):
       - Returns a session_id if a code is required, or user info if already signed in.
     """
     try:
-        result = await init_sign_in(req.api_id, req.api_hash, req.phone, req.password, redis_client)
-        return result
+        result= await init_sign_in(req.api_id, req.api_hash, req.phone, req.password)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    session = new_session(TelethonLoginSessionData)
+    await session.set_data(TelethonLoginSessionData(
+        api_id=req.api_id,
+        api_hash=req.api_hash,
+        phone=req.phone,
+        password=req.password,
+        phone_code_hash=result.phone_code
+    ))
+    match result.status:
+        case InitSignInStatus.NEED_CODE:
+            return {"status":result.status,"session_id": session.session_id}
+        case InitSignInStatus.SUCCESS:
+            # Already signed in
+            return {"status":result.status,"user": result.user}
+        case _:
+            raise HTTPException(status_code=400, detail="Invalid status")
 
 
 @app.post("/signin/code")
@@ -47,22 +63,16 @@ async def sign_in_code_endpoint(req: CodeSignInRequest):
       - Completes the sign-in process using the code.
       - Returns user information on success.
     """
-    session_key = f"session:{req.session_id}"
-    session_data_str = await redis_client.get(session_key)
-    if not session_data_str:
+    session = Session(session_id=req.session_id, data_cls=TelethonLoginSessionData)
+    session_data = await session.get_data()
+    if session_data is None:
         raise HTTPException(status_code=404, detail="Session not found")
-
-    session_data = json.loads(session_data_str)
-
     try:
-        result = await complete_sign_in(session_data, req.code, redis_client)
-        # Delete the session data from Redis after successful sign-in
-        await redis_client.delete(session_key)
-        return result
+        return await complete_sign_in(session_data, req.code)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
+from config import port, log_level, host
 if __name__ == "__main__":
     # Run the FastAPI application using Uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=host, port=port, log_level=log_level)
