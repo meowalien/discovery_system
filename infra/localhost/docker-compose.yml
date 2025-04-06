@@ -33,7 +33,6 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     restart: always
 
-  # PostgreSQL (提供給 Temporal 與 Debezium 使用)
   postgres:
     image: postgres:12
     environment:
@@ -46,7 +45,6 @@ services:
       - "5432:5432"
     restart: always
 
-  # Temporal Server (使用 auto-setup 模式，自動建立所需 schema)
   temporal:
     container_name: temporal
     depends_on:
@@ -93,7 +91,6 @@ services:
       - "6333:6333"
     restart: always
 
-  # Debezium Kafka Connect (用於監聽 PostgreSQL 的變更)
   debezium:
     image: debezium/connect:1.9
     platform: linux/amd64 # debezium 沒有支援 arm64 架構
@@ -155,4 +152,25 @@ services:
       - postgres
     ports:
       - "8001:8001"
+    restart: always
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    environment:
+      # 管理員帳號與密碼
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KC_LOG_LEVEL: info
+      KC_METRICS_ENABLED: true
+      KC_HEALTH_ENABLED: true
+    ports:
+      - "8082:8080"  # 可依需求調整對外端口
+    depends_on:
+      - postgres
+    command: [ "start-dev" ]  # 以開發模式啟動 Keycloak
     restart: always

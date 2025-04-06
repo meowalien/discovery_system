@@ -4,10 +4,9 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 
 from db import ping_postgres
-from models import InitSignInRequest, CodeSignInRequest
 from redis_client import redis_client, ping_redis
 from telethon_client import init_sign_in, complete_sign_in, InitSignInStatus
-
+from pydantic import BaseModel
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,6 +22,13 @@ async def lifespan(app: FastAPI):
 
 # Create the FastAPI app with the lifespan context
 app = FastAPI(lifespan=lifespan)
+
+
+class InitSignInRequest(BaseModel):
+    api_id: int
+    api_hash: str
+    phone: str
+    password: str
 
 
 @app.post("/signin/init")
@@ -48,7 +54,33 @@ async def init_sign_in_endpoint(req: InitSignInRequest):
             raise HTTPException(status_code=400, detail="Invalid status")
 
 
+class CodeSignInRequest(BaseModel):
+    api_id: int
+    api_hash: str
+    phone: str
+    password: str
+    code: str
+    phone_code_hash: str
+
 @app.post("/signin/code")
+async def sign_in_code_endpoint(req: CodeSignInRequest):
+    """
+    API endpoint to complete sign-in using the received code.
+      - Accepts all necessary parameters from the frontend.
+      - Completes the sign-in process using the provided data and code.
+      - Returns user information on success.
+    """
+    try:
+        return await complete_sign_in(api_id=req.api_id,
+                                      api_hash=req.api_hash,
+                                      phone=req.phone,
+                                      password=req.password,
+                                      phone_code_hash=req.phone_code_hash,
+                                      code=req.code)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/list_dialogs")
 async def sign_in_code_endpoint(req: CodeSignInRequest):
     """
     API endpoint to complete sign-in using the received code.

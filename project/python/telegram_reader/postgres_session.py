@@ -1,5 +1,5 @@
-from sqlalchemy import create_engine, Column, Integer, Text, LargeBinary, inspect, BigInteger, Engine
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy import  Column, Integer, Text, LargeBinary,  BigInteger, Engine
+from sqlalchemy.orm import declarative_base, Session
 from telethon import types, utils
 from telethon.tl.types import InputPhoto, InputDocument, PeerUser, PeerChat, PeerChannel
 from telethon.crypto import AuthKey
@@ -8,14 +8,8 @@ from telethon.sessions.memory import _SentFileType
 import datetime
 import time
 
-
-
 # 定義 ORM 的 Base 與各個資料表模型
 Base = declarative_base()
-
-class Version(Base):
-    __tablename__ = 'version'
-    version = Column(Integer, primary_key=True)
 
 # 修改 SessionModel，加入 session_id 以區分不同使用者
 class SessionModel(Base):
@@ -52,10 +46,6 @@ class UpdateState(Base):
     date = Column(Integer)
     seq = Column(Integer)
 
-# 其他常數
-EXTENSION = '.session'  # 與 SQLiteSession 保持一致，但 PostgreSQL 不使用檔案儲存
-CURRENT_VERSION = 7     # 資料庫版本
-
 class PostgresSession(MemorySession):
     """
     SQLAlchemy 版本的 PostgresSession，
@@ -63,7 +53,7 @@ class PostgresSession(MemorySession):
     請妥善保管資料庫連線資訊以免資料外洩。
     """
 
-    def __init__(self, engine, session_id: str):
+    def __init__(self, engine:Engine, session_id: str):
         print(f"Entering __init__ with session_id={session_id}")
         super().__init__()
         self.save_entities = True
@@ -71,34 +61,19 @@ class PostgresSession(MemorySession):
         self.engine = engine  # 傳入的 SQLAlchemy Engine
         self.db = Session(bind=self.engine)
 
-        inspector = inspect(self.engine)
-        # 檢查資料表是否存在
-        if 'version' in inspector.get_table_names():
-            # 資料表已存在，檢查版本
-            ver_obj = self.db.query(Version).first()
-            if ver_obj and ver_obj.version < CURRENT_VERSION:
-                self._upgrade_database(ver_obj.version)
-                ver_obj.version = CURRENT_VERSION
-                self.db.commit()
-            # 載入當前使用者的 session 資料（利用 session_id 區分）
-            session_obj = self.db.query(SessionModel).filter(SessionModel.session_id == self.session_id).first()
-            if session_obj:
-                self._dc_id = session_obj.dc_id
-                self._server_address = session_obj.server_address
-                self._port = session_obj.port
-                self._takeout_id = session_obj.takeout_id
-                self._auth_key = AuthKey(data=session_obj.auth_key) if session_obj.auth_key else None
-            else:
-                # 尚未建立此使用者的 session，做初始化
-                self._initialize_session()
-                self.db.commit()
+        # 載入當前使用者的 session 資料（利用 session_id 區分）
+        session_obj = self.db.query(SessionModel).filter(SessionModel.session_id == self.session_id).first()
+        if session_obj:
+            self._dc_id = session_obj.dc_id
+            self._server_address = session_obj.server_address
+            self._port = session_obj.port
+            self._takeout_id = session_obj.takeout_id
+            self._auth_key = AuthKey(data=session_obj.auth_key) if session_obj.auth_key else None
         else:
-            # 資料表不存在，建立所有必要的資料表，並初始化當前 session
-            Base.metadata.create_all(self.engine)
-            ver_obj = Version(version=CURRENT_VERSION)
-            self.db.add(ver_obj)
+            # 尚未建立此使用者的 session，做初始化
             self._initialize_session()
             self.db.commit()
+
         print("Exiting __init__")
 
     def _initialize_session(self):
@@ -109,34 +84,6 @@ class PostgresSession(MemorySession):
         self._takeout_id = None
         self._auth_key = None
         self._update_session_table()
-
-    def _upgrade_database(self, old):
-        print(f"Entering _upgrade_database with old={old}")
-        with self.engine.connect() as conn:
-            if old == 1:
-                old += 1
-                # 版本 1 無 sent_files 表，不需處理
-            if old == 2:
-                old += 1
-                conn.execute("DROP TABLE IF EXISTS sent_files")
-                conn.execute(
-                    "CREATE TABLE sent_files (md5_digest BYTEA, file_size INTEGER, type INTEGER, id INTEGER, hash INTEGER, PRIMARY KEY (md5_digest, file_size, type))"
-                )
-            if old == 3:
-                old += 1
-                conn.execute(
-                    "CREATE TABLE update_state (id INTEGER PRIMARY KEY, pts INTEGER, qts INTEGER, date INTEGER, seq INTEGER)"
-                )
-            if old == 4:
-                old += 1
-                conn.execute("ALTER TABLE sessions ADD COLUMN takeout_id INTEGER")
-            if old == 5:
-                old += 1
-                conn.execute("DELETE FROM entities")
-            if old == 6:
-                old += 1
-                conn.execute("ALTER TABLE entities ADD COLUMN date INTEGER")
-        print("Exiting _upgrade_database")
 
     def clone(self, to_instance=None):
         print(f"Entering clone with to_instance={to_instance}")
@@ -255,9 +202,9 @@ class PostgresSession(MemorySession):
     @classmethod
     def list_sessions(cls):
         print("Entering list_sessions")
-        ret = [cls().connection_dsn]
+        # ret = [cls().connection_dsn]
         print("Exiting list_sessions")
-        return ret
+        return []
 
     # ─── Entity 處理 ─────────────────────────────
     def process_entities(self, tlo):
