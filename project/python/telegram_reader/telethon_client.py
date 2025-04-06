@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from telethon import TelegramClient, errors
-from models import TelethonLoginSessionData
 from postgres_session import PostgresSession
 from db import postgres_engine
 from typing import Optional
@@ -40,34 +39,27 @@ async def init_sign_in(api_id: int, api_hash: str, phone: str, password: str) ->
     finally:
         await client.disconnect()
 
-async def complete_sign_in(session_data: TelethonLoginSessionData, code: str) -> dict:
+async def complete_sign_in(api_id: int, api_hash: str, phone: str, password: str, phone_code_hash: Optional[str], code: str) -> dict:
     """
     Completes the sign-in process:
       - Uses the stored session data from Redis.
       - Signs in using the code (and falls back to password if needed).
       - Returns user information on successful sign-in.
     """
-    api_id = session_data.api_id
-    api_hash = session_data.api_hash
-    phone = session_data.phone
-    password = session_data.password
-    phone_code_hash = session_data.phone_code_hash
-    session =PostgresSession(engine=postgres_engine, session_id=phone)
+    session = PostgresSession(engine=postgres_engine, session_id=phone)
     client = TelegramClient(session, api_id, api_hash)
     await client.connect()
     try:
         try:
-            # Attempt to sign in using the provided code
+            # 嘗試使用提供的 code 進行登入
             await client.sign_in(phone=phone, password=password, code=code, phone_code_hash=phone_code_hash)
         except errors.SessionPasswordNeededError:
-            # If a password is additionally required, sign in with the password
+            # 如果需要額外密碼，則改用密碼登入
             await client.sign_in(password=password)
-
         me = await client.get_me()
         return {"status": "success", "user": f"{me.first_name} {me.last_name}"}
     finally:
         await client.disconnect()
-
 
 
 async def list_dialogs(api_id: int, api_hash: str, phone: str) -> list:

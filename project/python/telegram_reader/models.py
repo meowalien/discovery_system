@@ -10,18 +10,9 @@ class InitSignInRequest(BaseModel):
     password: str
 
 class CodeSignInRequest(BaseModel):
-    session_id: str
-    code: str
-
-
-
-@dataclass
-class TelethonLoginSessionData:
-    """
-    Represents the session data stored in Redis.
-    """
     api_id: int
     api_hash: str
     phone: str
     password: str
-    phone_code_hash: Optional[str] = None
+    code: str
+    phone_code_hash: str

@@ -1,11 +1,11 @@
-import json
-from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
+
 import uvicorn
-from models import InitSignInRequest, CodeSignInRequest, TelethonLoginSessionData
-from redis_client import redis_client, ping_redis
+from fastapi import FastAPI, HTTPException
+
 from db import ping_postgres
-from session import new_session, Session
+from models import InitSignInRequest, CodeSignInRequest
+from redis_client import redis_client, ping_redis
 from telethon_client import init_sign_in, complete_sign_in, InitSignInStatus
 
 
@@ -30,27 +30,20 @@ async def init_sign_in_endpoint(req: InitSignInRequest):
     """
     API endpoint to initiate sign-in.
       - Accepts api_id, api_hash, phone, and password.
-      - Returns a session_id if a code is required, or user info if already signed in.
+      - Returns phone_code if a code is required, or user info if already signed in.
     """
     try:
-        result= await init_sign_in(req.api_id, req.api_hash, req.phone, req.password)
+        result = await init_sign_in(req.api_id, req.api_hash, req.phone, req.password)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    session = new_session(TelethonLoginSessionData)
-    await session.set_data(TelethonLoginSessionData(
-        api_id=req.api_id,
-        api_hash=req.api_hash,
-        phone=req.phone,
-        password=req.password,
-        phone_code_hash=result.phone_code
-    ))
     match result.status:
         case InitSignInStatus.NEED_CODE:
-            return {"status":result.status,"session_id": session.session_id}
+            # 直接回傳 phone_code 給前端，不儲存 session
+            return {"status": result.status, "phone_code": result.phone_code}
         case InitSignInStatus.SUCCESS:
             # Already signed in
-            return {"status":result.status,"user": result.user}
+            return {"status": result.status, "user": result.user}
         case _:
             raise HTTPException(status_code=400, detail="Invalid status")
 
@@ -59,20 +52,23 @@ async def init_sign_in_endpoint(req: InitSignInRequest):
 async def sign_in_code_endpoint(req: CodeSignInRequest):
     """
     API endpoint to complete sign-in using the received code.
-      - Retrieves stored session data from Redis using session_id.
-      - Completes the sign-in process using the code.
+      - Accepts all necessary parameters from the frontend.
+      - Completes the sign-in process using the provided data and code.
       - Returns user information on success.
     """
-    session = Session(session_id=req.session_id, data_cls=TelethonLoginSessionData)
-    session_data = await session.get_data()
-    if session_data is None:
-        raise HTTPException(status_code=404, detail="Session not found")
     try:
-        return await complete_sign_in(session_data, req.code)
+        return await complete_sign_in(api_id=req.api_id,
+                                      api_hash=req.api_hash,
+                                      phone=req.phone,
+                                      password=req.password,
+                                      phone_code_hash=req.phone_code_hash,
+                                      code=req.code)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 from config import port, log_level, host
+
 if __name__ == "__main__":
     # Run the FastAPI application using Uvicorn
     uvicorn.run(app, host=host, port=port, log_level=log_level)
