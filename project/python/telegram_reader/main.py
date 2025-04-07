@@ -1,12 +1,12 @@
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
-
+from fastapi import FastAPI, HTTPException, Request
 from db import ping_postgres
 from redis_client import redis_client, ping_redis
 from telethon_client import init_sign_in, complete_sign_in, InitSignInStatus
 from pydantic import BaseModel
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,6 +22,18 @@ async def lifespan(app: FastAPI):
 
 # Create the FastAPI app with the lifespan context
 app = FastAPI(lifespan=lifespan)
+
+# @app.middleware("http")
+# async def jwt_auth_middleware(request: Request, call_next):
+#
+#     auth: str | None = request.headers.get("Authorization")
+#     if not auth or not auth.lower().startswith("bearer "):
+#         return JSONResponse(status_code=401, content={"detail": "Missing or invalid Authorization header"})
+#
+#     token = auth.split(" ", 1)[1]
+#
+#
+#     return await call_next(request)
 
 
 class InitSignInRequest(BaseModel):
