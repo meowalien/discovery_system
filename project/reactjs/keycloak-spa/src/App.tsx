@@ -1,9 +1,10 @@
 // App.tsx
 import React, { useState } from 'react';
-import { useKeycloak } from '@react-keycloak/web';
+import { useAuth } from 'react-oidc-context';
 
 const App: React.FC = () => {
-  const { keycloak, initialized } = useKeycloak();
+  // 使用 useAuth hook 取得 OIDC 的狀態與方法
+  const auth = useAuth();
   // 使用 state 儲存 log 訊息（可選）
   const [log, setLog] = useState('');
 
@@ -18,24 +19,25 @@ const App: React.FC = () => {
   // 按鈕點擊處理函式
   const handleLogin = () => {
     logToTextarea('Login button clicked');
-    keycloak.login();
+    auth.signinRedirect();
   };
 
   const handleLogout = () => {
     logToTextarea('Logout button clicked');
-    keycloak.logout();
+    auth.signoutRedirect();
   };
 
   const handleIsLoggedIn = () => {
-    const message = keycloak.authenticated ? 'User is logged in' : 'User is not logged in';
+    const message = auth.isAuthenticated ? 'User is logged in' : 'User is not logged in';
     logToTextarea(`Is Logged In button clicked: ${message}`);
     alert(message);
   };
 
   const handleAccessToken = () => {
-    if (keycloak.authenticated) {
-      logToTextarea(`Access Token button clicked: ${keycloak.token}`);
-      alert('Access Token: ' + keycloak.token);
+    if (auth.isAuthenticated && auth.user) {
+      const token = auth.user.access_token;
+      logToTextarea(`Access Token button clicked: ${token}`);
+      alert('Access Token: ' + token);
     } else {
       const message = 'User is not logged in';
       logToTextarea(`Access Token button clicked: ${message}`);
@@ -44,10 +46,11 @@ const App: React.FC = () => {
   };
 
   const handleShowParsedToken = () => {
-    if (keycloak.authenticated) {
-      const formattedToken = JSON.stringify(keycloak.tokenParsed, null, 2);
-      logToTextarea(`Show Parsed Access Token button clicked: ${formattedToken}`);
-      alert('Parsed Access Token: ' + formattedToken);
+    if (auth.isAuthenticated && auth.user) {
+      // 此處 auth.user.profile 為解析後的 ID Token 資訊
+      const formattedProfile = JSON.stringify(auth.user.profile, null, 2);
+      logToTextarea(`Show Parsed Access Token button clicked: ${formattedProfile}`);
+      alert('Parsed Access Token: ' + formattedProfile);
     } else {
       const message = 'User is not logged in';
       logToTextarea(`Show Parsed Access Token button clicked: ${message}`);
@@ -57,10 +60,11 @@ const App: React.FC = () => {
 
   const handleCallApi = () => {
     logToTextarea('Call API button clicked');
-    if (keycloak.authenticated) {
+    if (auth.isAuthenticated && auth.user) {
+      const token = auth.user.access_token;
       fetch('https://4b215443be964e33bc1ef0373940400c.api.mockbin.io/', {
         headers: {
-          'Authorization': 'Bearer ' + keycloak.token,
+          'Authorization': 'Bearer ' + token,
         },
       })
         .then(response => response.json())
@@ -79,8 +83,8 @@ const App: React.FC = () => {
     }
   };
 
-  // 如果 Keycloak 尚未初始化，可以顯示 loading 畫面（可選）
-  if (!initialized) {
+  // 若 OIDC 資訊尚在載入中（例如等待重定向驗證回應），可顯示 loading 畫面
+  if (auth.isLoading) {
     return <div>Loading...</div>;
   }
 
@@ -88,9 +92,11 @@ const App: React.FC = () => {
     <div className="container">
       <div className="jumbotron mt-4">
         <h1 className="display-4">
-          Keycloak - Javascript Integration (React with react-keycloak)
+          OIDC Client Integration (React with react-oidc-context)
         </h1>
-        <p className="lead">A React web app using react-keycloak for authentication</p>
+        <p className="lead">
+          A React web app using oidc-client-ts and react-oidc-context for authentication
+        </p>
         <div className="mt-4">
           <button id="loginBtn" className="btn btn-primary mr-2" onClick={handleLogin}>
             Login
