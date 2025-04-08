@@ -1,75 +1,127 @@
-import React, { useEffect, useState } from 'react';
-import { UserManager, WebStorageStateStore, User } from 'oidc-client-ts';
-
-// 1. Keycloak OIDC client configuration
-const oidcConfig = {
-  authority: 'http://localhost:8082/realms/discovery_system',
-  client_id: 'demo',
-  redirect_uri: window.location.origin,
-  post_logout_redirect_uri: window.location.origin,
-
-  // —— 关键配置 ——
-  response_type: 'code',
-  scope: 'openid profile email offline_access',  // 加上 offline_access 拿到 refresh token
-  automaticSilentRenew: true,                     // 开启自动静默刷新
-  silent_redirect_uri: window.location.origin + '/silent-renew.html',  // 静默刷新的回调页
-  accessTokenExpiringNotificationTime: 60,       // 在过期前 60 秒触发 expiring 事件
-
-  userStore: new WebStorageStateStore({ store: window.localStorage }),
-};
-
-const userManager = new UserManager(oidcConfig);
+// App.tsx
+import React, { useState } from 'react';
+import { useKeycloak } from '@react-keycloak/web';
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { keycloak, initialized } = useKeycloak();
+  // 使用 state 儲存 log 訊息（可選）
+  const [log, setLog] = useState('');
 
-  useEffect(() => {
-    // 初次检查
-    userManager.getUser().then(u => {
-      if (u && !u.expired) {
-        setUser(u);
-      } else if (window.location.search.includes('code=')) {
-        userManager.signinRedirectCallback().then(u2 => setUser(u2));
-      }
-    });
+  // 幫助函式：新增日誌訊息
+  const logToTextarea = (message: string) => {
+    const now = new Date();
+    const timestamp = now.toLocaleString();
+    console.log(message);
+    setLog(prevLog => prevLog + `[${timestamp}] ${message}\n`);
+  };
 
-    // 当 access token 快过期时触发
-    const onExpiring = () => {
-      console.log('Access token 即将过期，静默刷新...');
-      userManager.signinSilent()
-        .then(u2 => {
-          console.log('静默刷新成功', u2);
-          setUser(u2);
+  // 按鈕點擊處理函式
+  const handleLogin = () => {
+    logToTextarea('Login button clicked');
+    keycloak.login();
+  };
+
+  const handleLogout = () => {
+    logToTextarea('Logout button clicked');
+    keycloak.logout();
+  };
+
+  const handleIsLoggedIn = () => {
+    const message = keycloak.authenticated ? 'User is logged in' : 'User is not logged in';
+    logToTextarea(`Is Logged In button clicked: ${message}`);
+    alert(message);
+  };
+
+  const handleAccessToken = () => {
+    if (keycloak.authenticated) {
+      logToTextarea(`Access Token button clicked: ${keycloak.token}`);
+      alert('Access Token: ' + keycloak.token);
+    } else {
+      const message = 'User is not logged in';
+      logToTextarea(`Access Token button clicked: ${message}`);
+      alert(message);
+    }
+  };
+
+  const handleShowParsedToken = () => {
+    if (keycloak.authenticated) {
+      const formattedToken = JSON.stringify(keycloak.tokenParsed, null, 2);
+      logToTextarea(`Show Parsed Access Token button clicked: ${formattedToken}`);
+      alert('Parsed Access Token: ' + formattedToken);
+    } else {
+      const message = 'User is not logged in';
+      logToTextarea(`Show Parsed Access Token button clicked: ${message}`);
+      alert(message);
+    }
+  };
+
+  const handleCallApi = () => {
+    logToTextarea('Call API button clicked');
+    if (keycloak.authenticated) {
+      fetch('https://4b215443be964e33bc1ef0373940400c.api.mockbin.io/', {
+        headers: {
+          'Authorization': 'Bearer ' + keycloak.token,
+        },
+      })
+        .then(response => response.json())
+        .then(data => {
+          logToTextarea('API call successful: ' + JSON.stringify(data));
+          console.log(data);
         })
-        .catch(err => console.error('静默刷新失败', err));
-    };
-    userManager.events.addAccessTokenExpiring(onExpiring);
+        .catch(error => {
+          logToTextarea('API call failed: ' + error);
+          console.error('Error:', error);
+        });
+    } else {
+      const message = 'User is not logged in';
+      logToTextarea('API call failed: ' + message);
+      alert(message);
+    }
+  };
 
-    // 静默刷新失败时也可捕获
-    userManager.events.addSilentRenewError(err => {
-      console.error('Silent renew error', err);
-    });
-
-    return () => {
-      userManager.events.removeAccessTokenExpiring(onExpiring);
-    };
-  }, []);
-
-  const login = () => userManager.signinRedirect();
-  const logout = () => userManager.signoutRedirect();
+  // 如果 Keycloak 尚未初始化，可以顯示 loading 畫面（可選）
+  if (!initialized) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      {!user && <button onClick={login}>Login with Keycloak</button>}
-      {user && (
-        <>
-          <h2>Token</h2>
-          <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(user)}</pre>
-          <button onClick={logout} style={{ marginTop: '1rem' }}>
+    <div className="container">
+      <div className="jumbotron mt-4">
+        <h1 className="display-4">
+          Keycloak - Javascript Integration (React with react-keycloak)
+        </h1>
+        <p className="lead">A React web app using react-keycloak for authentication</p>
+        <div className="mt-4">
+          <button id="loginBtn" className="btn btn-primary mr-2" onClick={handleLogin}>
+            Login
+          </button>
+          <button id="logoutBtn" className="btn btn-secondary mr-2" onClick={handleLogout}>
             Logout
           </button>
-        </>
-      )}
+          <button id="isLoggedInBtn" className="btn btn-info mr-2" onClick={handleIsLoggedIn}>
+            Is Logged In
+          </button>
+          <button id="accessTokenBtn" className="btn btn-warning mr-2" onClick={handleAccessToken}>
+            Access Token
+          </button>
+          <button id="showParsedTokenBtn" className="btn btn-dark mr-2" onClick={handleShowParsedToken}>
+            Show Parsed Access Token
+          </button>
+          <button id="callApiBtn" className="btn btn-success mr-2" onClick={handleCallApi}>
+            Call API
+          </button>
+        </div>
+        <div className="mt-4">
+          <textarea
+            id="output"
+            className="form-control"
+            rows={5}
+            value={log}
+            readOnly
+            placeholder="Output will be displayed here..."
+          />
+        </div>
+      </div>
     </div>
   );
 };
