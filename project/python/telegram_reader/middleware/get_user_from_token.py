@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from starlette.requests import Request
 
 import config
-from context.jwks_client import jwks_client, signing_algs, OIDC_SERVER
+from jwks_client import jwks_client, signing_algs, OIDC_SERVER
 
 
 def get_user_from_token(request: Request):
