@@ -20,12 +20,13 @@ REDIS_DB = int(redis_config.get("db", 0))
 postgres_config = config.get("postgres", {})
 POSTGRES_URL = postgres_config.get("url", "postgresql://postgres:postgres@localhost:5432/discovery_system")
 
+http_config = config.get("http", {})
+HTTP_PORT = int(http_config.get("port", 8001))
+HTTP_LOG_LEVEL = http_config.get("log_level", "debug")
+HTTP_HOST = http_config.get("host", "0.0.0.0")
 
-# http:
-#   host: "0.0.0.0"
-#   port:  8001
-#   log_level: "debug"
-http = config.get("http", {})
-port = int(http.get("port", 8001))
-log_level = http.get("log_level", "debug")
-host = http.get("host", "0.0.0.0")
+keycloak_config = config.get("keycloak", {})
+KEYCLOAK_OIDC_URL = keycloak_config.get("url", "http://localhost:8080")
+KEYCLOAK_REALM = keycloak_config.get("realm", "discovery_system")
+KEYCLOAK_CLIENT_ID = keycloak_config.get("client_id", "demo")
+KEYCLOAK_DEMO_CLIENT_AUDIENCE = keycloak_config.get("demo_client_audience", "account")
