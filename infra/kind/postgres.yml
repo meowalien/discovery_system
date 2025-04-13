@@ -6,7 +6,6 @@ data:
   create-keycloak-db.sql: |
     CREATE DATABASE keycloak;
 ---
-# PostgreSQL 使用 StatefulSet 部署與 Headless Service
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:

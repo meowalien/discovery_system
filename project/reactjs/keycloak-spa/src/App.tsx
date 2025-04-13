@@ -30,18 +30,15 @@ const App: React.FC = () => {
   const handleIsLoggedIn = () => {
     const message = auth.isAuthenticated ? 'User is logged in' : 'User is not logged in';
     logToTextarea(`Is Logged In button clicked: ${message}`);
-    alert(message);
   };
 
   const handleAccessToken = () => {
     if (auth.isAuthenticated && auth.user) {
       const token = auth.user.access_token;
       logToTextarea(`Access Token button clicked: ${token}`);
-      alert('Access Token: ' + token);
     } else {
       const message = 'User is not logged in';
       logToTextarea(`Access Token button clicked: ${message}`);
-      alert(message);
     }
   };
 
@@ -50,11 +47,9 @@ const App: React.FC = () => {
       // 此處 auth.user.profile 為解析後的 ID Token 資訊
       const formattedProfile = JSON.stringify(auth.user.profile, null, 2);
       logToTextarea(`Show Parsed Access Token button clicked: ${formattedProfile}`);
-      alert('Parsed Access Token: ' + formattedProfile);
     } else {
       const message = 'User is not logged in';
       logToTextarea(`Show Parsed Access Token button clicked: ${message}`);
-      alert(message);
     }
   };
 
@@ -79,7 +74,6 @@ const App: React.FC = () => {
     } else {
       const message = 'User is not logged in';
       logToTextarea('API call failed: ' + message);
-      alert(message);
     }
   };
 
