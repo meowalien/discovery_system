@@ -4,7 +4,7 @@ metadata:
   name: postgres-init-script
 data:
   create-keycloak-db.sql: |
-    CREATE DATABASE keycloak;
+    CREATE SCHEMA IF NOT EXISTS keycloak;
 ---
 apiVersion: apps/v1
 kind: StatefulSet

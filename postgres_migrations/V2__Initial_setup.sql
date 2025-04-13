@@ -1,4 +1,13 @@
-create table if not exists public.sessions
+create table if not exists telegram_reader.version
+(
+    version serial
+        primary key
+);
+
+alter table telegram_reader.version
+    owner to postgres;
+
+create table if not exists telegram_reader.sessions
 (
     session_id     text not null
         primary key,
@@ -9,10 +18,10 @@ create table if not exists public.sessions
     takeout_id     integer
 );
 
-alter table public.sessions
+alter table telegram_reader.sessions
     owner to postgres;
 
-create table if not exists public.entities
+create table if not exists telegram_reader.entities
 (
     id       serial
         primary key,
@@ -23,10 +32,10 @@ create table if not exists public.entities
     date     integer
 );
 
-alter table public.entities
+alter table telegram_reader.entities
     owner to postgres;
 
-create table if not exists public.sent_files
+create table if not exists telegram_reader.sent_files
 (
     md5_digest bytea   not null,
     file_size  integer not null,
@@ -36,10 +45,10 @@ create table if not exists public.sent_files
     primary key (md5_digest, file_size, type)
 );
 
-alter table public.sent_files
+alter table telegram_reader.sent_files
     owner to postgres;
 
-create table if not exists public.update_state
+create table if not exists telegram_reader.update_state
 (
     id   serial
         primary key,
@@ -49,6 +58,6 @@ create table if not exists public.update_state
     seq  integer
 );
 
-alter table public.update_state
+alter table telegram_reader.update_state
     owner to postgres;
 

@@ -10,9 +10,11 @@ import time
 
 # 定義 ORM 的 Base 與各個資料表模型
 Base = declarative_base()
+schema_name = 'telegram_reader'
 
 # 修改 SessionModel，加入 session_id 以區分不同使用者
 class SessionModel(Base):
+    __table_args__ = {'schema': schema_name}
     __tablename__ = 'sessions'
     session_id = Column(Text, primary_key=True)  # 新增欄位，作為使用者唯一識別
     dc_id = Column(Integer)
@@ -22,6 +24,7 @@ class SessionModel(Base):
     takeout_id = Column(Integer)
 
 class Entity(Base):
+    __table_args__ = {'schema': schema_name}
     __tablename__ = 'entities'
     id = Column(Integer, primary_key=True)
     hash = Column(BigInteger, nullable=False)  # 改為 BigInteger
@@ -31,6 +34,7 @@ class Entity(Base):
     date = Column(Integer)
 
 class SentFile(Base):
+    __table_args__ = {'schema': schema_name}
     __tablename__ = 'sent_files'
     md5_digest = Column(LargeBinary, primary_key=True)
     file_size = Column(Integer, primary_key=True)
@@ -39,6 +43,7 @@ class SentFile(Base):
     hash = Column(Integer)
 
 class UpdateState(Base):
+    __table_args__ = {'schema': schema_name}
     __tablename__ = 'update_state'
     id = Column(Integer, primary_key=True)
     pts = Column(Integer)

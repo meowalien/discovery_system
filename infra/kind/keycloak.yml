@@ -26,11 +26,13 @@ spec:
         - name: KC_DB
           value: "postgres"
         - name: KC_DB_URL
-          value: "jdbc:postgresql://postgres:5432/keycloak"
+          value: "jdbc:postgresql://postgres:5432/discovery_system"
         - name: KC_DB_USERNAME
           value: "postgres"
         - name: KC_DB_PASSWORD
           value: "postgres"
+        - name: KC_DB_SCHEMA
+          value: "keycloak"
         - name: KC_LOG_LEVEL
           value: "info"
         - name: KC_METRICS_ENABLED
