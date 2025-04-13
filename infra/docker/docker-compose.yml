@@ -174,3 +174,4 @@ services:
       - postgres
     command: [ "start-dev" ]  # 以開發模式啟動 Keycloak
     restart: always
+
