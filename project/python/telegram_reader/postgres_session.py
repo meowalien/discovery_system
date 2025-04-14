@@ -59,7 +59,6 @@ class PostgresSession(MemorySession):
     """
 
     def __init__(self, engine:Engine, session_id: str):
-        print(f"Entering __init__ with session_id={session_id}")
         super().__init__()
         self.save_entities = True
         self.session_id = session_id  # 用以區分不同使用者的 session
@@ -79,8 +78,6 @@ class PostgresSession(MemorySession):
             self._initialize_session()
             self.db.commit()
 
-        print("Exiting __init__")
-
     def _initialize_session(self):
         # 根據實際需求初始化 dc 及其他欄位（此處可依需要調整預設值）
         self._dc_id = 0
@@ -91,15 +88,12 @@ class PostgresSession(MemorySession):
         self._update_session_table()
 
     def clone(self, to_instance=None):
-        print(f"Entering clone with to_instance={to_instance}")
         cloned = super().clone(to_instance)
         cloned.save_entities = self.save_entities
         cloned.connection_dsn = self.connection_dsn
-        print("Exiting clone")
         return cloned
 
     def set_dc(self, dc_id, server_address, port):
-        print(f"Entering set_dc with dc_id={dc_id}, server_address={server_address}, port={port}")
         super().set_dc(dc_id, server_address, port)
         self._update_session_table()
         session_obj = self.db.query(SessionModel).filter(SessionModel.session_id == self.session_id).first()
@@ -107,24 +101,18 @@ class PostgresSession(MemorySession):
             self._auth_key = AuthKey(data=session_obj.auth_key)
         else:
             self._auth_key = None
-        print("Exiting set_dc")
 
     @MemorySession.auth_key.setter
     def auth_key(self, value):
-        print(f"Entering auth_key.setter with value={value}")
         self._auth_key = value
         self._update_session_table()
-        print("Exiting auth_key.setter")
 
     @MemorySession.takeout_id.setter
     def takeout_id(self, value):
-        print(f"Entering takeout_id.setter with value={value}")
         self._takeout_id = value
         self._update_session_table()
-        print("Exiting takeout_id.setter")
 
     def _update_session_table(self):
-        print("Entering _update_session_table")
         # 先刪除當前 session_id 的記錄，再插入新的資料
         self.db.query(SessionModel).filter(SessionModel.session_id == self.session_id).delete()
         auth_key_data = self._auth_key.key if self._auth_key else b''
@@ -138,20 +126,16 @@ class PostgresSession(MemorySession):
         )
         self.db.add(session_obj)
         self.db.commit()
-        print("Exiting _update_session_table")
 
     def get_update_state(self, entity_id):
-        print(f"Entering get_update_state with entity_id={entity_id}")
         state_obj = self.db.query(UpdateState).filter(UpdateState.id == entity_id).first()
         ret = None
         if state_obj:
             date_obj = datetime.datetime.fromtimestamp(state_obj.date, tz=datetime.timezone.utc)
             ret = types.updates.State(state_obj.pts, state_obj.qts, date_obj, state_obj.seq, unread_count=0)
-        print("Exiting get_update_state")
         return ret
 
     def set_update_state(self, entity_id, state):
-        print(f"Entering set_update_state with entity_id={entity_id}, state={state}")
         state_obj = self.db.query(UpdateState).filter(UpdateState.id == entity_id).first()
         if state_obj:
             state_obj.pts = state.pts
@@ -168,10 +152,8 @@ class PostgresSession(MemorySession):
             )
             self.db.add(state_obj)
         self.db.commit()
-        print("Exiting set_update_state")
 
     def get_update_states(self):
-        print("Entering get_update_states")
         rows = self.db.query(UpdateState).all()
         ret = []
         for row in rows:
@@ -183,43 +165,31 @@ class PostgresSession(MemorySession):
                 unread_count=0
             )
             ret.append((row.id, state))
-        print("Exiting get_update_states")
         return ret
 
     def save(self):
-        print("Entering save")
         self.db.commit()
-        print("Exiting save")
 
     def close(self):
-        print("Entering close")
         self.db.commit()
         self.db.close()
-        print("Exiting close")
 
     def delete(self):
-        print("Entering delete")
         self.db.query(SessionModel).delete()
         self.db.commit()
-        print("Exiting delete")
         return True
 
     @classmethod
     def list_sessions(cls):
-        print("Entering list_sessions")
         # ret = [cls().connection_dsn]
-        print("Exiting list_sessions")
         return []
 
     # ─── Entity 處理 ─────────────────────────────
     def process_entities(self, tlo):
-        print(f"Entering process_entities with tlo={tlo}")
         if not self.save_entities:
-            print("Exiting process_entities (save_entities is False)")
             return
         rows = self._entities_to_rows(tlo)
         if not rows:
-            print("Exiting process_entities (no rows)")
             return
         now_val = int(time.time())
         for row in rows:
@@ -236,19 +206,14 @@ class PostgresSession(MemorySession):
                                       phone=row[3], name=row[4], date=now_val)
                 self.db.add(entity_obj)
         self.db.commit()
-        print("Exiting process_entities")
 
     def get_entity_rows_by_phone(self, phone):
-        print(f"Entering get_entity_rows_by_phone with phone={phone}")
         entity_obj = self.db.query(Entity).filter(Entity.phone == phone).first()
-        print("Exiting get_entity_rows_by_phone")
         return (entity_obj.id, entity_obj.hash) if entity_obj else None
 
     def get_entity_rows_by_username(self, username):
-        print(f"Entering get_entity_rows_by_username with username={username}")
         results = self.db.query(Entity).filter(Entity.username == username).all()
         if not results:
-            print("Exiting get_entity_rows_by_username (no results)")
             return None
         if len(results) > 1:
             results.sort(key=lambda t: t.date or 0)
@@ -256,17 +221,13 @@ class PostgresSession(MemorySession):
                 t.username = None
             self.db.commit()
         ret = (results[-1].id, results[-1].hash)
-        print("Exiting get_entity_rows_by_username")
         return ret
 
     def get_entity_rows_by_name(self, name):
-        print(f"Entering get_entity_rows_by_name with name={name}")
         entity_obj = self.db.query(Entity).filter(Entity.name == name).first()
-        print("Exiting get_entity_rows_by_name")
         return (entity_obj.id, entity_obj.hash) if entity_obj else None
 
     def get_entity_rows_by_id(self, id, exact=True):
-        print(f"Entering get_entity_rows_by_id with id={id}, exact={exact}")
         if exact:
             entity_obj = self.db.query(Entity).filter(Entity.id == id).first()
             ret = (entity_obj.id, entity_obj.hash) if entity_obj else None
@@ -278,12 +239,10 @@ class PostgresSession(MemorySession):
             ]
             entity_obj = self.db.query(Entity).filter(Entity.id.in_(ids)).first()
             ret = (entity_obj.id, entity_obj.hash) if entity_obj else None
-        print("Exiting get_entity_rows_by_id")
         return ret
 
     # ─── 檔案處理 ─────────────────────────────
     def get_file(self, md5_digest, file_size, cls):
-        print(f"Entering get_file with md5_digest={md5_digest}, file_size={file_size}, cls={cls}")
         sent_file = self.db.query(SentFile).filter(
             SentFile.md5_digest == md5_digest,
             SentFile.file_size == file_size,
@@ -292,11 +251,9 @@ class PostgresSession(MemorySession):
         ret = None
         if sent_file:
             ret = cls(sent_file.id, sent_file.hash)
-        print("Exiting get_file")
         return ret
 
     def cache_file(self, md5_digest, file_size, instance):
-        print(f"Entering cache_file with md5_digest={md5_digest}, file_size={file_size}, instance={instance}")
         if not isinstance(instance, (InputDocument, InputPhoto)):
             raise TypeError('Cannot cache %s instance' % type(instance))
         sent_file = self.db.query(SentFile).filter(
@@ -317,4 +274,3 @@ class PostgresSession(MemorySession):
             )
             self.db.add(sent_file)
         self.db.commit()
-        print("Exiting cache_file")

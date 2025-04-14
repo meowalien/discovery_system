@@ -13,7 +13,7 @@ from pydantic import BaseModel
 async def lifespan(app: FastAPI):
     # --- health checks ---
     await ping_redis()
-    ping_postgres()
+    await ping_postgres()
 
     yield
     await redis_client.close()

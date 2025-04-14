@@ -1,8 +1,27 @@
 import requests
 
+import requests
+
+url = "http://keycloak:8080/realms/discovery_system/protocol/openid-connect/token"
+
+payload = 'username=sayken&password=qqqqqq&grant_type=password&client_id=demo'
+headers = {
+  'Content-Type': 'application/x-www-form-urlencoded',
+  'DNT': '1',
+  'Origin': 'null',
+  'Upgrade-Insecure-Requests': '1',
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+}
+
+response = requests.request("POST", url, headers=headers, data=payload)
+
+access_token =response.json().get("access_token")
+print("access_token: ",access_token)
+
+
 # BASE_URL = "http://localhost:80/telegram_reader"
 BASE_URL = "http://localhost:8002"
-access_token = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI4WW5OZ1p2R1Nzc2Q0YjZsVW12QkpyQVRxdlFObW0zS2NkdGh2dTh1dU1ZIn0.eyJleHAiOjE3NDQ1NDY0MTEsImlhdCI6MTc0NDU0NjExMSwiYXV0aF90aW1lIjoxNzQ0NTQ2MTExLCJqdGkiOiJvbnJ0YWM6YjhiM2RhNDktNGJiMi00YjllLWI4ZDMtZDZiMGFlODc2YWViIiwiaXNzIjoiaHR0cDovL2tleWNsb2FrOjgwODAvcmVhbG1zL2Rpc2NvdmVyeV9zeXN0ZW0iLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiYTA2ZjhhOTktMTJjNS00YzdmLTk2ODQtNTYyZmVlMTE5YmFmIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiZGVtbyIsInNpZCI6ImE0ZjE4OGRmLWM1MDYtNGQ4MC1iODljLTQ2MmFiOTU5ZDEzYSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cDovL2xvY2FsaG9zdDozMDAwIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsImRlZmF1bHQtcm9sZXMtZGlzY292ZXJ5X3N5c3RlbSIsInVtYV9hdXRob3JpemF0aW9uIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoic2F5IGtlbiIsInByZWZlcnJlZF91c2VybmFtZSI6InNheWtlbiIsImdpdmVuX25hbWUiOiJzYXkiLCJmYW1pbHlfbmFtZSI6ImtlbiIsImVtYWlsIjoiYS5tZW93YWxpZW5AZ21haWwuY29tIn0.RWCxIf74JpdK33rTLfu9AzzAPl1GUDdVcDjq5NOLyTISX69DbejfToYaiYNCSPMIajWNR7yIrQO3s7VDsMkMBxV6iBs-VKztdjwQbXBNdLU3f-eSZ1qfeym98cWxxxHZByJFZiRpiOVplK4a576TJIk4Ue0CS4wHD0mlPO3WQGkjhxrsKSVc6Tn2OVz27py3KMd7fhlhk0udTV3yUQ-CQVy4XjCU6qhza8PsiZfZr1RItIDDIaI6ChyC6Ikl-y9AOcRteymuPtBETnepWG3DOmRygsBs7kjM9FbmwC78Baw34YikH59T6qFxLKl6Yasf_RYLAAfrhSi1lgDQmozUNQ"
+access_token = f"Bearer {access_token}"
 
 def sign_in_init(api_id, api_hash, phone, password):
     """

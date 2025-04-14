@@ -1,0 +1,80 @@
+# StatefulSet for Consul with persistent storage.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: consul
+  labels:
+    app: consul
+spec:
+  serviceName: "consul-headless"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consul
+  template:
+    metadata:
+      labels:
+        app: consul
+    spec:
+      containers:
+      - name: consul
+        image: consul:1.15.4
+        args:
+          - "agent"
+          - "-server"
+          - "-data-dir=/consul/data"
+          - "-bootstrap"          # Using bootstrap mode since there's just one replica
+          - "-ui"
+          - "-client=0.0.0.0"
+        ports:
+          - containerPort: 8500
+            name: http
+          - containerPort: 8600
+            name: dns
+            protocol: UDP
+        volumeMounts:
+          - name: consul-data
+            mountPath: /consul/data
+  volumeClaimTemplates:
+  - metadata:
+      name: consul-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 5Gi
+---
+# Headless Service for StatefulSet DNS and peer communication.
+apiVersion: v1
+kind: Service
+metadata:
+  name: consul
+  labels:
+    app: consul
+spec:
+  clusterIP: None
+  ports:
+    - port: 8500
+      name: http
+    - port: 8600
+      name: dns
+      protocol: UDP
+  selector:
+    app: consul
+---
+
+# Service to expose the Consul HTTP API/UI externally within the cluster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: consul-ui
+  labels:
+    app: consul
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8500
+      targetPort: 8500
+      name: http
+  selector:
+    app: consul
