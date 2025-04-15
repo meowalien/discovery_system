@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from telethon import TelegramClient, errors
 from postgres_session import PostgresSession
-from db import postgres_engine
+from data_source.postgres_client import postgres_engine
 from typing import Optional
 
 @dataclass
@@ -52,7 +52,7 @@ async def complete_sign_in(api_id: int, api_hash: str, phone: str, password: str
     try:
         try:
             # 嘗試使用提供的 code 進行登入
-            await client.sign_in(phone=phone, password=password, code=code, phone_code_hash=phone_code_hash)
+            await client.sign_in(phone=phone, code=code, phone_code_hash=phone_code_hash)
         except errors.SessionPasswordNeededError:
             # 如果需要額外密碼，則改用密碼登入
             await client.sign_in(password=password)

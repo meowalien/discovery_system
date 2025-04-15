@@ -12,7 +12,7 @@ def get_user_from_token(request: Request):
 
     try:
         payload, header, signature = parse_jwt_token(token)
-        print("payload: ",payload)
+        # print("payload: ",payload)
         request.state.user = payload
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"[{request_id}] Token validation error: {e}")

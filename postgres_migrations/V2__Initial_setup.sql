@@ -1,11 +1,11 @@
-create table if not exists telegram_reader.version
-(
-    version serial
-        primary key
-);
-
-alter table telegram_reader.version
-    owner to postgres;
+-- create table if not exists telegram_reader.version
+-- (
+--     version serial
+--         primary key
+-- );
+--
+-- alter table telegram_reader.version
+--     owner to postgres;
 
 create table if not exists telegram_reader.sessions
 (
@@ -23,7 +23,7 @@ alter table telegram_reader.sessions
 
 create table if not exists telegram_reader.entities
 (
-    id       serial
+    id       bigint
         primary key,
     hash     bigint not null,
     username text,
@@ -50,7 +50,7 @@ alter table telegram_reader.sent_files
 
 create table if not exists telegram_reader.update_state
 (
-    id   serial
+    id   bigint
         primary key,
     pts  integer,
     qts  integer,

@@ -30,3 +30,10 @@ KEYCLOAK_OIDC_URL = keycloak_config.get("url", "http://localhost:8080")
 KEYCLOAK_REALM = keycloak_config.get("realm", "discovery_system")
 KEYCLOAK_CLIENT_ID = keycloak_config.get("client_id", "demo")
 KEYCLOAK_DEMO_CLIENT_AUDIENCE = keycloak_config.get("demo_client_audience", "account")
+
+# read SERVICE_NAME from environment variable or default to "auth-service"
+SERVICE_NAME = os.getenv("SERVICE_NAME", "auth-service")
+
+LOG_FILE_PATH = config.get("log_file_path",None)
+if LOG_FILE_PATH is None:
+    raise ValueError("LOG_FILE_PATH is not found in the configuration file.")

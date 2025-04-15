@@ -3,3 +3,4 @@
 /.idea
 /project/python/embedding_service/.venv/
 /project/python/telegram_reader/.venv/
+/backup/
