@@ -1,6 +1,7 @@
-from sqlalchemy import Integer, Text, LargeBinary, BigInteger
+from sqlalchemy import Integer, Text, LargeBinary, BigInteger, String, ForeignKey, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from typing import Optional
+from uuid import UUID as UUIDType
 
 schema_name = "telegram_reader"
 
@@ -55,3 +56,11 @@ class UpdateState(Base):
     qts: Mapped[int] = mapped_column(Integer)
     date: Mapped[int] = mapped_column(Integer)
     seq: Mapped[int] = mapped_column(Integer)
+
+class TelegramClient(Base):
+    __tablename__ = "telegram_client"
+    __table_args__ = {"schema": schema_name}
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("keycloak.user_entity.id", ondelete="REJECT", onupdate="CASCADE"), primary_key=True)
+    session_id: Mapped[UUIDType] = mapped_column(UUID(as_uuid=True), primary_key=True)
+

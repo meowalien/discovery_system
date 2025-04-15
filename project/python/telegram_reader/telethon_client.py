@@ -10,9 +10,7 @@ class InitSignInResponse:
     phone_code: Optional[str] = None
     user: Optional[str] = None
 
-class InitSignInStatus:
-    NEED_CODE = "need_code"
-    SUCCESS = "success"
+
 
 async def init_sign_in(api_id: int, api_hash: str, phone: str, password: str) -> InitSignInResponse:
     """

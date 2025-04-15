@@ -8,12 +8,12 @@ from logger_config import get_logger
 _logger = get_logger(__name__)
 
 # 同步 engine：給 legacy code 用
-postgres_engine = create_engine(POSTGRES_URL)
+postgres_engine = create_engine(POSTGRES_URL, echo=True)
 
 # 非同步 engine：給新 async code 用
 async_postgres_engine = create_async_engine(
     POSTGRES_URL.replace("postgresql://", "postgresql+asyncpg://"),
-    echo=False
+    echo=True
 )
 
 async def ping_postgres():
