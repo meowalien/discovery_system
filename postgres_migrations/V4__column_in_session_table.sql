@@ -1,8 +1,6 @@
-CREATE TABLE telegram_reader.telegram_client
-(
-    user_id VARCHAR(36),
-    session_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES keycloak.user_entity (id)
-        ON DELETE RESTRICT ON UPDATE CASCADE,
-    PRIMARY KEY (user_id, session_id)
-);
+--     api_id: Mapped[int] = mapped_column(Integer)
+--     api_hash: Mapped[str] = mapped_column(Text)
+ALTER TABLE telegram_reader.sessions
+    ADD COLUMN api_id BIGINT,
+    ADD COLUMN api_hash TEXT
+;
