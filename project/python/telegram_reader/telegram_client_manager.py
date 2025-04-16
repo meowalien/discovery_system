@@ -1,7 +1,6 @@
 import asyncio
 from telethon import TelegramClient, errors
 from typing import Optional, Dict, Callable, Awaitable
-from data_source.postgres_client import postgres_engine
 from postgres_session import PostgresSession
 from telethon.tl.types import Dialog
 from telethon.events import NewMessage
@@ -12,14 +11,14 @@ class TelegramClientManager:
         self.clients: Dict[str, TelegramClient] = {}
         self.lock = asyncio.Lock()
 
-    async def create_client(self, session_id: str, api_id:int, api_hash:str):
+    async def create_client(self, session_id:str, api_id:int, api_hash:str):
         async with self.lock:
             if session_id in self.clients:
                 return self.clients[session_id]
 
-            session = PostgresSession(engine=postgres_engine, session_id=session_id)
+            session = PostgresSession(session_id=session_id)
             client = TelegramClient(
-                session=session,  # 你可以換成檔案或 DB 儲存
+                session=session,
                 api_id= api_id,
                 api_hash=api_hash
             )
@@ -27,7 +26,11 @@ class TelegramClientManager:
             await client.connect()
             self.clients[session_id] = client
 
-    async def stop_client(self, session_id: str) -> bool:
+    async def get_clients(self) -> Dict[str, bool]:
+        async with self.lock:
+            return {session_id:await client.is_user_authorized() for session_id,client  in self.clients.items()}
+
+    async def stop_client(self, session_id:str) -> bool:
         async with self.lock:
             client = self.clients.get(session_id)
             if not client:
@@ -43,7 +46,7 @@ class TelegramClientManager:
             self.clients.clear()
 
 
-    async def get_user_dialogs(self, session_id: str) -> Optional[list[Dialog]]:
+    async def get_user_dialogs(self, session_id:str) -> Optional[list[Dialog]]:
         async with self.lock:
             client = self.clients.get(session_id)
             if not client or not await client.is_user_authorized():
@@ -54,7 +57,7 @@ class TelegramClientManager:
                 dialogs.append(dialog)
             return dialogs
 
-    async def register_channel_callback(self, session_id: str, channel_id: int, access_hash: int, callback: Callable[[NewMessage.Event], Awaitable[None]]):
+    async def register_channel_callback(self, session_id:str, channel_id: int, access_hash: int, callback: Callable[[NewMessage.Event], Awaitable[None]]):
         async with self.lock:
             client = self.clients.get(session_id)
             if not client:
@@ -66,7 +69,7 @@ class TelegramClientManager:
             async def handler(event: NewMessage.Event):
                 await callback(event)
 
-    async def sign_in(self, session_id: str, phone: str, password: Optional[str] = None):
+    async def sign_in(self, session_id:str, phone: str, password: Optional[str] = None):
         """
         登入 Telegram 帳號
         :param session_id:
@@ -88,7 +91,7 @@ class TelegramClientManager:
                 await client.sign_in(phone=phone, password=password)
                 return None
 
-    async def complete_sign_in(self, session_id: str, phone: str, code: str, phone_code_hash: str, password: Optional[str] = None):
+    async def complete_sign_in(self, session_id:str, phone: str, code: str, phone_code_hash: str, password: Optional[str] = None):
         async with self.lock:
             client = self.clients.get(session_id)
             if not client:

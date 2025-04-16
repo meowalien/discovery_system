@@ -1,15 +1,13 @@
 import datetime
 import time
 from typing import cast
-
-from sqlalchemy import Engine
-from sqlalchemy.orm import Session
 from telethon import types, utils
 from telethon.tl.types import InputPhoto, InputDocument, PeerUser, PeerChat, PeerChannel
 from telethon.crypto import AuthKey
 from telethon.sessions import MemorySession
 from telethon.sessions.memory import _SentFileType  # type: ignore
 
+from data_source.postgres_client import get_postgres_session
 from db_module.telegram_client import SessionModel, UpdateState, Entity, SentFile
 
 
@@ -21,13 +19,12 @@ class PostgresSession(MemorySession):
     操作成功時 commit，出錯時 rollback。
     """
 
-    def __init__(self, engine: Engine, session_id: str):
+    def __init__(self, session_id: str):
         super().__init__()
         self.save_entities = True
         self.session_id = session_id  # 用以區分不同使用者的 session
-        self.engine = engine
         # 載入當前使用者的 session 資料（利用 session_id 區分）
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             session_obj = (
                 db.query(SessionModel)
                 .filter(SessionModel.session_id == self.session_id)
@@ -60,7 +57,7 @@ class PostgresSession(MemorySession):
     def set_dc(self, dc_id, server_address, port):
         super().set_dc(dc_id, server_address, port)
         self._update_session_table()
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             session_obj = (
                 db.query(SessionModel)
                 .filter(SessionModel.session_id == self.session_id)
@@ -86,7 +83,7 @@ class PostgresSession(MemorySession):
         每次更新資料庫中的 SessionModel 時，開啟新的 Session 作業，
         先刪除舊記錄，再插入最新內容，並 commit。
         """
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             # 刪除目前 session_id 的所有紀錄
             db.query(SessionModel).filter(SessionModel.session_id == self.session_id).delete()
             auth_key_data = self._auth_key.key if self._auth_key else b''
@@ -99,11 +96,11 @@ class PostgresSession(MemorySession):
                 takeout_id=self._takeout_id
             )
             db.add(session_obj)
-            db.commit()
+            
 
     # ───────── UpdateState 相關操作 ─────────
     def get_update_state(self, entity_id):
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             state_obj = db.query(UpdateState).filter(UpdateState.id == entity_id).first()
             ret = None
             if state_obj:
@@ -114,7 +111,7 @@ class PostgresSession(MemorySession):
             return ret
 
     def set_update_state(self, entity_id, state):
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             state_obj = db.query(UpdateState).filter(UpdateState.id == entity_id).first()
             if state_obj:
                 state_obj.pts = state.pts
@@ -130,10 +127,10 @@ class PostgresSession(MemorySession):
                     seq=state.seq
                 )
                 db.add(state_obj)
-            db.commit()
+            
 
     def get_update_states(self):
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             rows = db.query(UpdateState).all()
             ret = []
             for row in rows:
@@ -156,9 +153,9 @@ class PostgresSession(MemorySession):
         pass
 
     def delete(self):
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             db.query(SessionModel).filter(SessionModel.session_id == self.session_id).delete()
-            db.commit()
+            
             return True
 
     @classmethod
@@ -174,7 +171,7 @@ class PostgresSession(MemorySession):
         if not rows:
             return
         now_val = int(time.time())
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             for row in rows:
                 # 假設 row 格式為 (id, hash, username, phone, name)
                 entity_obj = db.query(Entity).filter(Entity.id == row[0]).first()
@@ -194,15 +191,15 @@ class PostgresSession(MemorySession):
                         date=now_val
                     )
                     db.add(entity_obj)
-            db.commit()
+            
 
     def get_entity_rows_by_phone(self, phone):
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             entity_obj = db.query(Entity).filter(Entity.phone == phone).first()
             return (entity_obj.id, entity_obj.hash) if entity_obj else None
 
     def get_entity_rows_by_username(self, username):
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             results = db.query(Entity).filter(Entity.username == username).all()
             if not results:
                 return None
@@ -210,17 +207,17 @@ class PostgresSession(MemorySession):
                 results.sort(key=lambda r: r.date or 0)
                 for t in results[:-1]:
                     t.username = None
-                db.commit()
+                
             ret = (results[-1].id, results[-1].hash)
             return ret
 
     def get_entity_rows_by_name(self, name):
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             entity_obj = db.query(Entity).filter(Entity.name == name).first()
             return (entity_obj.id, entity_obj.hash) if entity_obj else None
 
     def get_entity_rows_by_id(self, the_id, exact=True):
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             if exact:
                 entity_obj = db.query(Entity).filter(Entity.id == the_id).first()
                 ret = (entity_obj.id, entity_obj.hash) if entity_obj else None
@@ -236,7 +233,7 @@ class PostgresSession(MemorySession):
 
     # ───────── 檔案處理 ─────────
     def get_file(self, md5_digest, file_size, cls):
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             sent_file = db.query(SentFile).filter(
                 SentFile.md5_digest == md5_digest,
                 SentFile.file_size == file_size,
@@ -250,7 +247,7 @@ class PostgresSession(MemorySession):
     def cache_file(self, md5_digest, file_size, instance):
         if not isinstance(instance, (InputDocument, InputPhoto)):
             raise TypeError('Cannot cache %s instance' % type(instance))
-        with Session(bind=self.engine) as db:
+        with get_postgres_session() as db:
             sent_file = db.query(SentFile).filter(
                 SentFile.md5_digest == md5_digest,
                 SentFile.file_size == file_size,
@@ -268,4 +265,4 @@ class PostgresSession(MemorySession):
                     hash=instance.access_hash
                 )
                 db.add(sent_file)
-            db.commit()
+            

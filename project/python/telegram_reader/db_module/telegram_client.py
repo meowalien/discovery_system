@@ -3,16 +3,13 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from typing import Optional
 from uuid import UUID as UUIDType
 
-schema_name = "telegram_reader"
-
 
 class Base(DeclarativeBase):
     pass
 
-
 class SessionModel(Base):
     __tablename__ = "sessions"
-    __table_args__ = {"schema": schema_name}
+    __table_args__ = {"schema": "telegram_reader"}
 
     # 使用者唯一識別：用 Text 作為主鍵
     session_id: Mapped[str] = mapped_column(Text, primary_key=True)
@@ -26,7 +23,7 @@ class SessionModel(Base):
 
 class Entity(Base):
     __tablename__ = "entities"
-    __table_args__ = {"schema": schema_name}
+    __table_args__ = {"schema": "telegram_reader"}
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     hash: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -38,7 +35,7 @@ class Entity(Base):
 
 class SentFile(Base):
     __tablename__ = "sent_files"
-    __table_args__ = {"schema": schema_name}
+    __table_args__ = {"schema": "telegram_reader"}
 
     md5_digest: Mapped[bytes] = mapped_column(LargeBinary, primary_key=True)
     file_size: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -49,7 +46,7 @@ class SentFile(Base):
 
 class UpdateState(Base):
     __tablename__ = "update_state"
-    __table_args__ = {"schema": schema_name}
+    __table_args__ = {"schema": "telegram_reader"}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     pts: Mapped[int] = mapped_column(Integer)
@@ -57,10 +54,15 @@ class UpdateState(Base):
     date: Mapped[int] = mapped_column(Integer)
     seq: Mapped[int] = mapped_column(Integer)
 
-class TelegramClient(Base):
-    __tablename__ = "telegram_client"
-    __table_args__ = {"schema": schema_name}
 
-    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("keycloak.user_entity.id", ondelete="REJECT", onupdate="CASCADE"), primary_key=True)
-    session_id: Mapped[UUIDType] = mapped_column(UUID(as_uuid=True), primary_key=True)
+
+class KeycloakUserEntity(Base):
+    __tablename__ = "user_entity"
+    __table_args__ = {"schema": "keycloak"}
+    id:Mapped[str] = mapped_column(String(36), primary_key=True)
+
+
+
+
+
 

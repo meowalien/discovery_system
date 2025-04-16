@@ -1,30 +1,85 @@
 import asyncio
 import atexit
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy import text, create_engine
+from contextlib import contextmanager, asynccontextmanager
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine, async_sessionmaker
+from sqlalchemy import text, create_engine, Engine
+from sqlalchemy.orm import sessionmaker, Session
+
 from config import POSTGRES_URL
 from logger_config import get_logger
 
 _logger = get_logger(__name__)
 
-# 同步 engine：給 legacy code 用
-postgres_engine = create_engine(POSTGRES_URL, echo=True)
+_engine: Engine | None = None
 
-# 非同步 engine：給新 async code 用
-async_postgres_engine = create_async_engine(
-    POSTGRES_URL.replace("postgresql://", "postgresql+asyncpg://"),
-    echo=True
+def get_postgres_engine() -> Engine:
+    global _engine
+    if _engine is None:
+        _engine = create_engine(POSTGRES_URL, echo=True)
+    return _engine
+
+
+_SessionFactory = sessionmaker(
+    bind=get_postgres_engine()
 )
+
+
+@contextmanager
+def get_postgres_session() -> Session:
+    with _SessionFactory() as session:
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+
+_async_engine: AsyncSession | None = None
+
+def get_async_postgres_engine() -> AsyncEngine:
+    """
+    :return: async session
+    """
+    global _async_engine
+    if _async_engine is None:
+        _async_engine = create_async_engine(
+            POSTGRES_URL.replace("postgresql://", "postgresql+asyncpg://"),
+            echo=True
+        )
+    return _async_engine
+
+_AsyncSessionFactory = async_sessionmaker(
+    bind=get_async_postgres_engine(),
+    expire_on_commit=False,
+    class_=AsyncSession
+)
+
+@asynccontextmanager
+async def get_async_postgres_session() -> AsyncSession:
+    async with _AsyncSessionFactory() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
 
 async def ping_postgres():
     """
     ping to PostgreSQL database to verify the connection.
     """
     try:
-        async with async_postgres_engine.connect() as conn:
+        async with get_async_postgres_engine().connect() as conn:
             await conn.execute(text("SELECT 1"))
 
-        with postgres_engine.connect() as conn:
+        with get_postgres_engine().connect() as conn:
             conn.execute(text("SELECT 1"))
 
         _logger.info("Postgres connection successful")
