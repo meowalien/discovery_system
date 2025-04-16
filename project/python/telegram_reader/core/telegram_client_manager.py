@@ -1,13 +1,13 @@
 import asyncio
 import uuid
 
-from telethon import TelegramClient, errors
+from telethon import TelegramClient, errors, events
 from typing import Optional, Dict, Callable, Awaitable
 
-from data_source.postgres_client import get_postgres_session
+from data_source.postgres_client import postgres_session
 from db_module.telegram_client import SessionModel
 from postgres_session import PostgresSession
-from telethon.tl.types import Dialog
+from telethon.tl.types import Dialog, TypeDialog
 from telethon.events import NewMessage
 from telethon.tl.types import InputPeerChannel
 
@@ -17,11 +17,11 @@ class TelegramClientManager:
         self.lock = asyncio.Lock()
 
     async def load_client(self, session_id:str):
-        with get_postgres_session() as session:
+        with postgres_session() as session:
             client = session.query(SessionModel).filter_by(session_id=session_id).first()
             if not client:
                 raise Exception(f"Session {session_id} not found in database")
-        return await self._load_or_create_client(session_id, client.api_id, client.api_hash)
+            return await self._load_or_create_client(session_id, client.api_id, client.api_hash)
 
     async def create_client(self, api_id:int, api_hash:str)->str:
         session_id = str(uuid.uuid4())
@@ -67,7 +67,7 @@ class TelegramClientManager:
             self.clients.clear()
 
 
-    async def get_user_dialogs(self, session_id:str) -> Optional[list[Dialog]]:
+    async def get_dialogs(self, session_id:str) -> Optional[list]:
         async with self.lock:
             client = self.clients.get(session_id)
             if not client or not await client.is_user_authorized():
@@ -78,17 +78,24 @@ class TelegramClientManager:
                 dialogs.append(dialog)
             return dialogs
 
-    async def register_channel_callback(self, session_id:str, channel_id: int, access_hash: int, callback: Callable[[NewMessage.Event], Awaitable[None]]):
+    async def register_channel_callback(self, session_id:str,  callback: Callable[[NewMessage.Event], Awaitable[None]]):
         async with self.lock:
             client = self.clients.get(session_id)
             if not client:
                 raise ValueError(f"No client found for session {session_id}")
 
-            entity = InputPeerChannel(channel_id=channel_id, access_hash=access_hash)
+            # entity = InputPeerChannel(channel_id=channel_id, access_hash=access_hash)
 
-            @client.on(NewMessage(chats=entity))
-            async def handler(event: NewMessage.Event):
-                await callback(event)
+            # entity = await client.get_entity(channel_id)
+
+            client.add_event_handler(
+                callback,
+                event=events.NewMessage(),
+            )
+
+            # @client.on(NewMessage(chats=entity))
+            # async def handler(event: NewMessage.Event):
+            #     await callback(event)
 
     async def sign_in(self, session_id:str, phone: str, password: Optional[str] = None):
         """

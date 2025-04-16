@@ -13,20 +13,20 @@ _logger = get_logger(__name__)
 
 _engine: Engine | None = None
 
-def get_postgres_engine() -> Engine:
+def postgres_engine() -> Engine:
     global _engine
     if _engine is None:
-        _engine = create_engine(POSTGRES_URL, echo=True)
+        _engine = create_engine(POSTGRES_URL, echo=False)
     return _engine
 
 
 _SessionFactory = sessionmaker(
-    bind=get_postgres_engine()
+    bind=postgres_engine()
 )
 
 
 @contextmanager
-def get_postgres_session() -> Session:
+def postgres_session() -> Session:
     with _SessionFactory() as session:
         try:
             yield session
@@ -40,7 +40,7 @@ def get_postgres_session() -> Session:
 
 _async_engine: AsyncSession | None = None
 
-def get_async_postgres_engine() -> AsyncEngine:
+def async_postgres_engine() -> AsyncEngine:
     """
     :return: async session
     """
@@ -48,18 +48,18 @@ def get_async_postgres_engine() -> AsyncEngine:
     if _async_engine is None:
         _async_engine = create_async_engine(
             POSTGRES_URL.replace("postgresql://", "postgresql+asyncpg://"),
-            echo=True
+            echo=False
         )
     return _async_engine
 
 _AsyncSessionFactory = async_sessionmaker(
-    bind=get_async_postgres_engine(),
+    bind=async_postgres_engine(),
     expire_on_commit=False,
     class_=AsyncSession
 )
 
 @asynccontextmanager
-async def get_async_postgres_session() -> AsyncSession:
+async def async_postgres_session() -> AsyncSession:
     async with _AsyncSessionFactory() as session:
         try:
             yield session
@@ -76,10 +76,10 @@ async def ping_postgres():
     ping to PostgreSQL database to verify the connection.
     """
     try:
-        async with get_async_postgres_engine().connect() as conn:
+        async with async_postgres_engine().connect() as conn:
             await conn.execute(text("SELECT 1"))
 
-        with get_postgres_engine().connect() as conn:
+        with postgres_engine().connect() as conn:
             conn.execute(text("SELECT 1"))
 
         _logger.info("Postgres connection successful")

@@ -55,3 +55,13 @@ async def complete_sign_in_client(session_id: str, req: CompleteSignInRequest):
 @router.get("/clients", description="List all clients")
 async def list_client():
     return await manager.get_clients()
+
+
+@router.get("/clients/{session_id}/dialogs", description="Get all dialogs for a client")
+async def get_dialogs(session_id: str):
+    # session_id should be a valid UUIDv4
+    if not is_valid_uuid4(session_id):
+        raise HTTPException(status_code=400, detail="Invalid session ID format")
+
+    dialogs = await manager.get_dialogs(session_id)
+    return [{dialog.id: dialog.title} for dialog in dialogs]

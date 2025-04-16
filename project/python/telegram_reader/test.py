@@ -105,6 +105,19 @@ def load_client(session_id:str)->bool:
     else:
         raise Exception(f"Error loading client: {response.text}")
 
+def get_dialogs(session_id:str)->list:
+    """
+    Get all dialogs for a client
+    """
+    url = f"{BASE_URL}/clients/{session_id}/dialogs"
+    response = requests.get(url, headers=common_headers)
+    if response.status_code == 200:
+        return response.json()
+    elif response.status_code == 404:
+        return []
+    else:
+        raise Exception(f"Error getting dialogs: {response.text}")
+
 def main2():
     api_id = 24529225
     api_hash = '0abc06cc13bab8c228b59bcca4284800'
@@ -122,6 +135,10 @@ def main2():
         # Step 4: List all clients
         clients = list_clients()
         print("Clients under manager:", clients)
+
+        dialogs = get_dialogs(session_id)
+        print("Dialogs under manager:", dialogs)
+
         return
     elif status == "need_code":
         phone_code_hash = sign_in_response.get("phone_code_hash")
