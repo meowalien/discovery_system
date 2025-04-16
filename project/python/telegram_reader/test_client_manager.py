@@ -2,7 +2,7 @@ import asyncio
 
 from telethon.events import NewMessage
 
-from telegram_client_manager import TelegramClientManager
+from core.telegram_client_manager import TelegramClientManager
 
 # 你需要填入自己的 API 資訊
 API_ID = 24529225        # 替換成你的 api_id
@@ -20,7 +20,7 @@ async def message_callback(event:NewMessage.Event):
 
 async def main():
     # Step 1: 創建 TelegramClient
-    await manager.create_client(SESSION_ID, API_ID, API_HASH)
+    await manager._load_or_create_client(SESSION_ID, API_ID, API_HASH)
 
     phone_code_hash = await manager.sign_in(SESSION_ID, phone, password=password)
     if phone_code_hash:

@@ -1,6 +1,11 @@
 import asyncio
+import uuid
+
 from telethon import TelegramClient, errors
 from typing import Optional, Dict, Callable, Awaitable
+
+from data_source.postgres_client import get_postgres_session
+from db_module.telegram_client import SessionModel
 from postgres_session import PostgresSession
 from telethon.tl.types import Dialog
 from telethon.events import NewMessage
@@ -11,12 +16,27 @@ class TelegramClientManager:
         self.clients: Dict[str, TelegramClient] = {}
         self.lock = asyncio.Lock()
 
-    async def create_client(self, session_id:str, api_id:int, api_hash:str):
+    async def load_client(self, session_id:str):
+        with get_postgres_session() as session:
+            client = session.query(SessionModel).filter_by(session_id=session_id).first()
+            if not client:
+                raise Exception(f"Session {session_id} not found in database")
+        return await self._load_or_create_client(session_id, client.api_id, client.api_hash)
+
+    async def create_client(self, api_id:int, api_hash:str)->str:
+        session_id = str(uuid.uuid4())
+        await self._load_or_create_client(session_id, api_id, api_hash)
+        return session_id
+
+    async def _load_or_create_client(self, session_id:str, api_id:int, api_hash:str):
         async with self.lock:
             if session_id in self.clients:
                 return self.clients[session_id]
 
-            session = PostgresSession(session_id=session_id)
+            session = PostgresSession(
+                session_id=session_id,
+                api_id= api_id,
+                api_hash=api_hash)
             client = TelegramClient(
                 session=session,
                 api_id= api_id,
@@ -25,6 +45,7 @@ class TelegramClientManager:
 
             await client.connect()
             self.clients[session_id] = client
+            return client
 
     async def get_clients(self) -> Dict[str, bool]:
         async with self.lock:

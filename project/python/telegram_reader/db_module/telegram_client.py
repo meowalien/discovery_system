@@ -19,6 +19,8 @@ class SessionModel(Base):
     # 若 auth_key 未必有值，可使用 Optional[bytes]
     auth_key: Mapped[Optional[bytes]] = mapped_column(LargeBinary)
     takeout_id: Mapped[Optional[int]] = mapped_column(Integer)
+    api_id: Mapped[int] = mapped_column(Integer)
+    api_hash: Mapped[str] = mapped_column(Text)
 
 
 class Entity(Base):

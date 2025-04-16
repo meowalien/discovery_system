@@ -19,11 +19,13 @@ class PostgresSession(MemorySession):
     操作成功時 commit，出錯時 rollback。
     """
 
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, api_id:int, api_hash:str):
         super().__init__()
         self.save_entities = True
-        self.session_id = session_id  # 用以區分不同使用者的 session
-        # 載入當前使用者的 session 資料（利用 session_id 區分）
+        self.session_id = session_id
+        self._api_id = api_id
+        self._api_hash = api_hash
+
         with get_postgres_session() as db:
             session_obj = (
                 db.query(SessionModel)
@@ -36,6 +38,8 @@ class PostgresSession(MemorySession):
                 self._port = session_obj.port
                 self._takeout_id = session_obj.takeout_id
                 self._auth_key = AuthKey(data=session_obj.auth_key) if session_obj.auth_key else None
+                self._api_id = session_obj.api_id
+                self._api_hash = session_obj.api_hash
             else:
                 # 尚未建立此使用者的 session，初始化並寫入 DB
                 self._initialize_session()
@@ -93,7 +97,9 @@ class PostgresSession(MemorySession):
                 server_address=self._server_address,
                 port=self._port,
                 auth_key=auth_key_data,
-                takeout_id=self._takeout_id
+                takeout_id=self._takeout_id,
+                api_id = self._api_id,
+                api_hash=self._api_hash,
             )
             db.add(session_obj)
             
