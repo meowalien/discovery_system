@@ -1,15 +1,16 @@
-# app.py
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from starlette.responses import JSONResponse
+
+from exception_handler.exception_handler import append_exception_handler
 from logger_config import get_logger
 from telemetry import setup_tracing
 from middleware.request_id import add_request_id
-# from routes.auth import router as auth_router
 from routes.client_manager import router as client_manager_router
 from data_source.postgres_client import ping_postgres
 from data_source.redis_client import ping_redis, redis_client
-
+from fastapi import Request
 _logger = get_logger(__name__)
 
 
@@ -35,7 +36,13 @@ def create_app() -> FastAPI:
     app.middleware("http")(add_request_id)
     # include 掉所有路由
     app.include_router(client_manager_router)
+
+    append_exception_handler(app)
+
     return app
 
 
 app = create_app()
+
+
+

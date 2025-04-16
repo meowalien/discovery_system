@@ -10,7 +10,6 @@ class CreateClientResponse(BaseModel):
 
 class SignInClientRequest(BaseModel):
     phone: str
-    password: str
 
 
 class SignInClientResponse(BaseModel):

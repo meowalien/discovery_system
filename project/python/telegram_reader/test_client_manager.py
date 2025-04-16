@@ -81,7 +81,7 @@ async def main():
     # Step 1: 創建 TelegramClient
     await manager.load_client(SESSION_ID)
 
-    phone_code_hash = await manager.sign_in(SESSION_ID, phone, password=password)
+    phone_code_hash = await manager.sign_in(SESSION_ID, phone)
     if phone_code_hash:
         code = input(f"請輸入從 Telegram 收到的驗證碼: ")
         await manager.complete_sign_in(SESSION_ID, phone, code,phone_code_hash, password=password)
@@ -110,8 +110,6 @@ async def main():
     if hasattr(entity, "id"):
         await manager.register_channel_callback(
             session_id=SESSION_ID,
-            # channel_id=entity.id,
-            # access_hash=entity.access_hash,
             callback=message_callback
         )
     else:

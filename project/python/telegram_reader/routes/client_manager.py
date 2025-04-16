@@ -3,10 +3,11 @@ from typing import cast
 from fastapi import APIRouter, HTTPException
 from pydantic import UUID4
 
+from core.message_consumer import MessageConsumer
+from core.telegram_client_manager import TelegramClientManager
 from logger_config import get_logger
 from routes.module import CreateClientRequest, CreateClientResponse, SignInClientRequest, SignInClientResponse, \
     InitSignInStatus, CompleteSignInRequest
-from core.telegram_client_manager import TelegramClientManager
 from util.util import is_valid_uuid4
 
 router = APIRouter()
@@ -21,7 +22,7 @@ async def create_client(req: CreateClientRequest) -> CreateClientResponse:
 
 
 @router.post("/clients/{session_id}/load", description="Load a Telegram client to manager")
-async def sign_in_client(session_id: str):
+async def load_client(session_id: str):
     # session_id should be a valid UUIDv4
     if not is_valid_uuid4(session_id):
         raise HTTPException(status_code=400, detail="Invalid session ID format")
@@ -34,7 +35,7 @@ async def sign_in_client(session_id: str, req: SignInClientRequest) -> SignInCli
     if not is_valid_uuid4(session_id):
         raise HTTPException(status_code=400, detail="Invalid session ID format")
 
-    phone_code_hash = await manager.sign_in(session_id=session_id, phone=req.phone, password=req.password)
+    phone_code_hash = await manager.sign_in(session_id=session_id, phone=req.phone)
 
     if phone_code_hash:
         return SignInClientResponse(status=InitSignInStatus.NEED_CODE, phone_code_hash=phone_code_hash)
@@ -65,3 +66,13 @@ async def get_dialogs(session_id: str):
 
     dialogs = await manager.get_dialogs(session_id)
     return [{dialog.id: dialog.title} for dialog in dialogs]
+
+
+@router.post("/clients/{session_id}/read_message/start", description="Start to read message for a client")
+async def start_read_message(session_id: str):
+    # session_id should be a valid UUIDv4
+    if not is_valid_uuid4(session_id):
+        raise HTTPException(status_code=400, detail="Invalid session ID format")
+
+    message_consumer = MessageConsumer()
+    await manager.register_channel_callback(session_id, message_consumer.on_new_event)

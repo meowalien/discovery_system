@@ -4,16 +4,33 @@ import uuid
 from telethon import TelegramClient, errors, events
 from typing import Optional, Dict, Callable, Awaitable
 
+from telethon.client.updates import Callback
+from telethon.events.common import EventBuilder
+
 from data_source.postgres_client import postgres_session
 from db_module.telegram_client import SessionModel
+from exception.exception import EventHandlerAlreadyExistError
 from postgres_session import PostgresSession
-from telethon.tl.types import Dialog, TypeDialog
 from telethon.events import NewMessage
-from telethon.tl.types import InputPeerChannel
+
+class MyTelegramClient(TelegramClient):
+    def __init__(self, session: PostgresSession, api_id: int, api_hash: str):
+        super().__init__(session, api_id, api_hash)
+        self.session = session
+        self.api_id = api_id
+        self.api_hash = api_hash
+        self.event_handler = None
+
+    def add_event_handler(
+            self,
+            callback: Callback,
+            event: EventBuilder = None):
+        super().add_event_handler(callback, event)
+        self.event_handler = (callback, event)
 
 class TelegramClientManager:
     def __init__(self):
-        self.clients: Dict[str, TelegramClient] = {}
+        self.clients: Dict[str, MyTelegramClient] = {}
         self.lock = asyncio.Lock()
 
     async def load_client(self, session_id:str):
@@ -37,7 +54,7 @@ class TelegramClientManager:
                 session_id=session_id,
                 api_id= api_id,
                 api_hash=api_hash)
-            client = TelegramClient(
+            client = MyTelegramClient(
                 session=session,
                 api_id= api_id,
                 api_hash=api_hash
@@ -82,42 +99,31 @@ class TelegramClientManager:
         async with self.lock:
             client = self.clients.get(session_id)
             if not client:
-                raise ValueError(f"No client found for session {session_id}")
-
-            # entity = InputPeerChannel(channel_id=channel_id, access_hash=access_hash)
+                raise Exception(f"No client found for session {session_id}")
 
             # entity = await client.get_entity(channel_id)
-
+            if client.event_handler is not None:
+                raise EventHandlerAlreadyExistError()
             client.add_event_handler(
                 callback,
                 event=events.NewMessage(),
             )
 
-            # @client.on(NewMessage(chats=entity))
-            # async def handler(event: NewMessage.Event):
-            #     await callback(event)
 
-    async def sign_in(self, session_id:str, phone: str, password: Optional[str] = None):
+    async def sign_in(self, session_id:str, phone: str):
         """
         登入 Telegram 帳號
-        :param session_id:
-        :param phone:
-        :param password:
-        :return: None if already authorized, else phone_code_hash
         """
         async with self.lock:
             client = self.clients.get(session_id)
             if not client:
                 raise ValueError(f"No client found for session {session_id}")
 
+            # check if the session is already signed in
             if not await client.is_user_authorized():
-                # 尚未授權，送出驗證碼請求
                 phone_code = await client.send_code_request(phone)
                 return phone_code.phone_code_hash
-            else:
-                # 已授權，直接以密碼登入
-                await client.sign_in(phone=phone, password=password)
-                return None
+            return None
 
     async def complete_sign_in(self, session_id:str, phone: str, code: str, phone_code_hash: str, password: Optional[str] = None):
         async with self.lock:
