@@ -18,3 +18,7 @@ keycloak:
   audience: "account"
 
 log_file_path: "/Users/jacky_li/logs/telegram_reader.log"
+
+kafka:
+  urls:
+    - "kafka:9092"

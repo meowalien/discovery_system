@@ -5,6 +5,7 @@ from pydantic import UUID4
 
 from core.message_consumer import MessageConsumer
 from core.telegram_client_manager import TelegramClientManager
+from kafka_client.kafka_producer import producer
 from logger_config import get_logger
 from routes.module import CreateClientRequest, CreateClientResponse, SignInClientRequest, SignInClientResponse, \
     InitSignInStatus, CompleteSignInRequest
@@ -74,5 +75,5 @@ async def start_read_message(session_id: str):
     if not is_valid_uuid4(session_id):
         raise HTTPException(status_code=400, detail="Invalid session ID format")
 
-    message_consumer = MessageConsumer()
+    message_consumer = MessageConsumer(producer())
     await manager.register_channel_callback(session_id, message_consumer.on_new_event)

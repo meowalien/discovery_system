@@ -37,3 +37,9 @@ SERVICE_NAME = os.getenv("SERVICE_NAME", "auth-service")
 LOG_FILE_PATH = config.get("log_file_path",None)
 if LOG_FILE_PATH is None:
     raise ValueError("LOG_FILE_PATH is not found in the configuration file.")
+
+
+kafka_config = config.get("kafka", {})
+KAFKA_BROKER_URLS = kafka_config.get("urls", None)
+if KAFKA_BROKER_URLS is None:
+    raise ValueError("KAFKA_BROKER_URLS is not found in the configuration file.")
