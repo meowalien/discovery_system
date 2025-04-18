@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegram-reader-config
+data:
+  config.yml: |
+    redis:
+      host: "redis"
+      port: 6379
+      db: 0
+
+    postgres:
+      url: "postgresql://postgres:postgres@postgres-headless.default:5432/discovery_system"
+
+    http:
+      port:  8002
+      log_level: "debug"
+
+    grpc:
+      port:  50051
+
+    keycloak:
+      url: "http://keycloak:8080"
+      realm: "discovery_system"
+      client_id: "demo"
+      audience: "account"
+
+    log_file_path: "/Users/jacky_li/logs/telegram-reader.log"
+
+    kafka:
+      urls:
+        - "kafka-headless.default.svc.cluster.local:9092"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram-reader
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telegram-reader
+  template:
+    metadata:
+      labels:
+        app: telegram-reader
+    spec:
+      imagePullSecrets:
+        - name: gcp-artifact-registry
+      containers:
+        - name: telegram-reader
+          image: asia-east1-docker.pkg.dev/homepage-436511/docker-repo/telegram_reader:latest
+          ports:
+            - name: grpc
+              containerPort: 50051
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yml
+              subPath: config.yml
+      volumes:
+        - name: config
+          configMap:
+            name: telegram-reader-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telegram-reader
+spec:
+  selector:
+    app: telegram-reader
+  ports:
+    - name: grpc
+      protocol: TCP
+      port: 50051
+      targetPort: 50051
+  type: ClusterIP

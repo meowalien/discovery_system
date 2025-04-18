@@ -13,7 +13,7 @@ metadata:
   labels:
     app: postgres
 spec:
-  serviceName: "postgres"
+  serviceName: "postgres-headless"
   replicas: 1
   selector:
     matchLabels:
@@ -58,7 +58,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: postgres-headless
 spec:
   ports:
   - port: 5432

@@ -21,8 +21,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code to the working directory
 COPY . .
 
-# Expose port 8000 for the HTTP server
-EXPOSE 8000
 
 # Set an environment variable for the configuration file, if needed
 ENV CONFIG_FILE=config.yml
