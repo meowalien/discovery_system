@@ -43,3 +43,5 @@ kafka_config = config.get("kafka", {})
 KAFKA_BROKER_URLS = kafka_config.get("urls", None)
 if KAFKA_BROKER_URLS is None:
     raise ValueError("KAFKA_BROKER_URLS is not found in the configuration file.")
+
+HOSTNAME = os.getenv("HOSTNAME", "localhost")

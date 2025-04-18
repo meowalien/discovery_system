@@ -9,7 +9,7 @@ from telemetry import setup_tracing
 from middleware.request_id import add_request_id
 from routes.http import router as client_manager_router
 from data_source.postgres_client import ping_postgres
-from data_source.redis_client import ping_redis, redis_client
+from data_source.redis_client import ping_redis, _redis_client
 from fastapi import Request
 _logger = get_logger(__name__)
 

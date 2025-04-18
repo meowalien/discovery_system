@@ -5,15 +5,22 @@ from config import REDIS_HOST, REDIS_PORT, REDIS_DB
 from logger_config import get_logger
 
 # Create an asynchronous Redis client
-redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
+_redis_client = None
 _logger = get_logger(__name__)
+
+def redis_client() -> redis.Redis:
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
+    return _redis_client
+
 
 async def ping_redis():
     """
     Ping the Redis server to verify the connection.
     """
     try:
-        await redis_client.ping()
+        await _redis_client.ping()
         _logger.info("Redis connection successful")
     except redis.ConnectionError:
         _logger.info("Redis connection failed")

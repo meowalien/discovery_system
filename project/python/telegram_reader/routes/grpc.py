@@ -15,8 +15,8 @@ _logger = get_logger(__name__)
 class AsyncTelegramReaderServiceServicer(
     telegram_reader_pb2_grpc.TelegramReaderServiceServicer
 ):
-    def __init__(self):
-        self.manager = TelegramClientManager()
+    def __init__(self,manager:TelegramClientManager):
+        self.manager = manager
 
     async def CreateClient(
             self, request: telegram_reader_pb2.CreateClientRequest, context
