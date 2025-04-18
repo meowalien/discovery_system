@@ -23,7 +23,10 @@ POSTGRES_URL = postgres_config.get("url", "postgresql://postgres:postgres@localh
 http_config = config.get("http", {})
 HTTP_PORT = int(http_config.get("port", 8001))
 HTTP_LOG_LEVEL = http_config.get("log_level", "debug")
-HTTP_HOST = http_config.get("host", "0.0.0.0")
+
+grpc_config = config.get("grpc", {})
+GRPC_PORT = int(grpc_config.get("port", 50051))
+
 
 keycloak_config = config.get("keycloak", {})
 KEYCLOAK_OIDC_URL = keycloak_config.get("url", "http://localhost:8080")

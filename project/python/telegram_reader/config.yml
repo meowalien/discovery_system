@@ -7,9 +7,11 @@ postgres:
   url: "postgresql://postgres:postgres@postgres-headless.default:5432/discovery_system"
 
 http:
-  host: "0.0.0.0"
   port:  8002
   log_level: "debug"
+
+grpc:
+  port:  50051
 
 keycloak:
   url: "http://keycloak:8080"

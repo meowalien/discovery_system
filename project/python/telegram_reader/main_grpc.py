@@ -4,7 +4,7 @@ import signal
 from grpc import aio
 import telegram_reader_pb2_grpc
 
-from config import HOSTNAME
+from config import HOSTNAME, GRPC_PORT
 from core.telegram_client_manager import telegram_client_manager
 from data_source.redis_client import redis_client
 from logger_config import get_logger
@@ -27,9 +27,9 @@ async def serve():
     telegram_reader_pb2_grpc.add_TelegramReaderServiceServicer_to_server(
         AsyncTelegramReaderServiceServicer(manager), server
     )
-    server.add_insecure_port("[::]:50051")
+    server.add_insecure_port(f"[::]:{GRPC_PORT}")
     await server.start()
-    print("gRPC server listening on [::]:50051")
+    print(f"gRPC server listening on [::]:{GRPC_PORT}")
 
     # Wait for shutdown signal
     stop_event = asyncio.Event()
