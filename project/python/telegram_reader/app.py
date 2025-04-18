@@ -7,7 +7,7 @@ from exception_handler.exception_handler import append_exception_handler
 from logger_config import get_logger
 from telemetry import setup_tracing
 from middleware.request_id import add_request_id
-from routes.client_manager import router as client_manager_router
+from routes.http import router as client_manager_router
 from data_source.postgres_client import ping_postgres
 from data_source.redis_client import ping_redis, redis_client
 from fastapi import Request

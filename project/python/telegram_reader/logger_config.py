@@ -1,16 +1,16 @@
 # logger_config.py
-import os
-import logging
 import contextvars
+import logging
+import os
 
 import pythonjsonlogger
-from pythonjsonlogger import jsonlogger
 from fastapi import Request
 from opentelemetry import trace
+
 from config import SERVICE_NAME, HTTP_LOG_LEVEL, LOG_FILE_PATH
 
 # 建立全域 context 變數，供 middleware 設定 request 物件
-request_context: contextvars.ContextVar[Request|None] = contextvars.ContextVar("request_context", default=None)
+request_context: contextvars.ContextVar[Request | None] = contextvars.ContextVar("request_context", default=None)
 
 
 class OTelContextFilter(logging.Filter):

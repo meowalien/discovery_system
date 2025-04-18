@@ -4,7 +4,7 @@ redis:
   db: 0
 
 postgres:
-  url: "postgresql://postgres:postgres@postgres.default:5432/discovery_system"
+  url: "postgresql://postgres:postgres@postgres-headless.default:5432/discovery_system"
 
 http:
   host: "0.0.0.0"
