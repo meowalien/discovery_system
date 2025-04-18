@@ -40,29 +40,19 @@ class TelegramClientManager:
                 raise Exception(f"Session {session_id} not found in database")
             return await self._load_or_create_client(session_id, client.api_id, client.api_hash)
 
+    async def unload_client(self, session_id:str):
+        async with self.lock:
+            if session_id not in self.clients:
+                raise Exception(f"Session {session_id} not found in memory")
+
+            client = self.clients[session_id]
+            await client.disconnect()
+            del self.clients[session_id]
+
     async def create_client(self, api_id:int, api_hash:str)->str:
         session_id = str(uuid.uuid4())
         await self._load_or_create_client(session_id, api_id, api_hash)
         return session_id
-
-    async def _load_or_create_client(self, session_id:str, api_id:int, api_hash:str):
-        async with self.lock:
-            if session_id in self.clients:
-                return self.clients[session_id]
-
-            session = PostgresSession(
-                session_id=session_id,
-                api_id= api_id,
-                api_hash=api_hash)
-            client = MyTelegramClient(
-                session=session,
-                api_id= api_id,
-                api_hash=api_hash
-            )
-
-            await client.connect()
-            self.clients[session_id] = client
-            return client
 
     async def get_clients(self) -> Dict[str, bool]:
         async with self.lock:
@@ -139,3 +129,22 @@ class TelegramClientManager:
                     raise ValueError("Password is required for this account.")
                 # 若需要額外密碼驗證，則採用密碼方式登入
                 await client.sign_in(password=password)
+
+    async def _load_or_create_client(self, session_id:str, api_id:int, api_hash:str):
+        async with self.lock:
+            if session_id in self.clients:
+                return self.clients[session_id]
+
+            session = PostgresSession(
+                session_id=session_id,
+                api_id= api_id,
+                api_hash=api_hash)
+            client = MyTelegramClient(
+                session=session,
+                api_id= api_id,
+                api_hash=api_hash
+            )
+
+            await client.connect()
+            self.clients[session_id] = client
+            return client

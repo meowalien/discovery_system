@@ -7,6 +7,7 @@ import "google/protobuf/empty.proto";
 service TelegramReaderService {
   rpc CreateClient(CreateClientRequest) returns (CreateClientResponse);
   rpc LoadClient(LoadClientRequest) returns (google.protobuf.Empty);
+  rpc UnLoadClient(UnLoadClientRequest) returns (google.protobuf.Empty);
   rpc SignInClient(SignInClientRequest) returns (SignInClientResponse);
   rpc CompleteSignInClient(CompleteSignInRequest) returns (google.protobuf.Empty);
   rpc ListClients(google.protobuf.Empty) returns (ListClientsResponse);
@@ -19,6 +20,10 @@ message CreateClientRequest {
   string api_hash = 2;
 }
 message CreateClientResponse {
+  string session_id = 1;
+}
+
+message UnLoadClientRequest {
   string session_id = 1;
 }
 

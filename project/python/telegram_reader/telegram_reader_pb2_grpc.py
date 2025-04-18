@@ -45,6 +45,11 @@ class TelegramReaderServiceStub(object):
                 request_serializer=telegram__reader__pb2.LoadClientRequest.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
+        self.UnLoadClient = channel.unary_unary(
+                '/telegram.TelegramReaderService/UnLoadClient',
+                request_serializer=telegram__reader__pb2.UnLoadClientRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                _registered_method=True)
         self.SignInClient = channel.unary_unary(
                 '/telegram.TelegramReaderService/SignInClient',
                 request_serializer=telegram__reader__pb2.SignInClientRequest.SerializeToString,
@@ -82,6 +87,12 @@ class TelegramReaderServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def LoadClient(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UnLoadClient(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -128,6 +139,11 @@ def add_TelegramReaderServiceServicer_to_server(servicer, server):
             'LoadClient': grpc.unary_unary_rpc_method_handler(
                     servicer.LoadClient,
                     request_deserializer=telegram__reader__pb2.LoadClientRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'UnLoadClient': grpc.unary_unary_rpc_method_handler(
+                    servicer.UnLoadClient,
+                    request_deserializer=telegram__reader__pb2.UnLoadClientRequest.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
             'SignInClient': grpc.unary_unary_rpc_method_handler(
@@ -209,6 +225,33 @@ class TelegramReaderService(object):
             target,
             '/telegram.TelegramReaderService/LoadClient',
             telegram__reader__pb2.LoadClientRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UnLoadClient(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/telegram.TelegramReaderService/UnLoadClient',
+            telegram__reader__pb2.UnLoadClientRequest.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,

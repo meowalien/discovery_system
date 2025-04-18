@@ -128,6 +128,16 @@ class AsyncTelegramReaderServiceServicer(
         )
         return empty_pb2.Empty()
 
+    async def UnLoadClient(self, request, context):
+        _logger.info(f"UnLoadClient: session_id={request.session_id}")
+        if not is_valid_uuid4(request.session_id):
+            await context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT,
+                "Invalid session ID format",
+            )
+        await self.manager.unload_client(request.session_id)
+        return empty_pb2.Empty()
+
 async def serve():
     server = aio.server()
     telegram_reader_pb2_grpc.add_TelegramReaderServiceServicer_to_server(
