@@ -1,11 +1,30 @@
-apiVersion: apps/v1
-kind: Deployment
+---
+# 1. Headless Service，負責 Pod 之間的 DNS 解析
+apiVersion: v1
+kind: Service
 metadata:
-  name: kafka
+  name: kafka-headless
   labels:
     app: kafka
 spec:
-  replicas: 1
+  clusterIP: None         # 這裡要設定成 None，才不會分配虛擬 IP
+  selector:
+    app: kafka
+  ports:
+    - name: plaintext
+      port: 9092
+      targetPort: 9092
+    - name: controller
+      port: 9093
+      targetPort: 9093
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+spec:
+  serviceName: kafka-headless
+  replicas: 3
   selector:
     matchLabels:
       app: kafka
@@ -17,53 +36,58 @@ spec:
       containers:
       - name: kafka
         image: apache/kafka:latest
-        env:
-        - name: KAFKA_NODE_ID
-          value: "1"
-        - name: KAFKA_PROCESS_ROLES
-          value: "broker,controller"
-        - name: KAFKA_LISTENERS
-          value: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
-        - name: KAFKA_ADVERTISED_LISTENERS
-          value: "PLAINTEXT://kafka:9092"
-        - name: KAFKA_CONTROLLER_LISTENER_NAMES
-          value: "CONTROLLER"
-        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
-          value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
-        - name: KAFKA_CONTROLLER_QUORUM_VOTERS
-          value: "1@localhost:9093"
-        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
-          value: "1"
-        - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
-          value: "1"
-        - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
-          value: "1"
-        - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
-          value: "0"
-        - name: KAFKA_NUM_PARTITIONS
-          value: "3"
+        command:
+          - sh
+          - -c
+          - |
+            ORD=${HOSTNAME##*-}
+            export KAFKA_NODE_ID=$ORD
+            export KAFKA_INTER_BROKER_LISTENER_NAME="PLAINTEXT"
+            export KAFKA_CONTROLLER_LISTENER_NAMES="CONTROLLER"
+            export KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+              
+            if [ "$ORD" -eq 0 ]; then
+              # 只有 kafka-0 既当 Broker 又当 Controller
+              export KAFKA_PROCESS_ROLES="broker,controller"
+              # kafka-0 真正监听 Controller 接口
+              export KAFKA_LISTENERS="PLAINTEXT://:9092,CONTROLLER://:9093"
+              export KAFKA_CONTROLLER_QUORUM_VOTERS="0@kafka-0.kafka-headless.default.svc.cluster.local:9093"
+            else
+              # 其它节点只当 Broker，不监听 Controller 接口
+              export KAFKA_PROCESS_ROLES="broker"
+              export KAFKA_LISTENERS="PLAINTEXT://:9092"
+              export KAFKA_CONTROLLER_QUORUM_VOTERS="0@kafka-0.kafka-headless.default.svc.cluster.local:9093"
+            fi
+
+            # 广播地址对所有节点都相同
+            export KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://$HOSTNAME.kafka-headless.default.svc.cluster.local:9092"
+
+            # 其余无状态配置
+            export KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR="1"
+            export KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR="1"
+            export KAFKA_TRANSACTION_STATE_LOG_MIN_ISR="1"
+            export KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS="0"
+            export KAFKA_NUM_PARTITIONS="3"
+
+            exec /etc/kafka/docker/run
         ports:
-        - containerPort: 9092
-          name: plaintext
-        - containerPort: 9093
-          name: controller
+          - name: plaintext
+            containerPort: 9092
+          - name: controller
+            containerPort: 9093
+        volumeMounts:
+          - name: data
+            mountPath: /var/lib/kafka/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: kafka
-spec:
-  selector:
-    app: kafka
-  ports:
-  - name: plaintext
-    port: 9092
-    targetPort: 9092
-  - name: controller
-    port: 9093
-    targetPort: 9093
----
-# Kafka UI 部署與 Service
+# 3. Kafka UI 保持原本 Deployment（不需要 StatefulSet，一般 UI 沒有狀態需求）
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -84,13 +108,13 @@ spec:
       - name: kafka-ui
         image: provectuslabs/kafka-ui:latest
         env:
-        - name: KAFKA_CLUSTERS_0_NAME
-          value: "local"
-        - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
-          value: "kafka:9092"
+          - name: KAFKA_CLUSTERS_0_NAME
+            value: "local"
+          - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+            value: "kafka-headless:9092"
         ports:
-        - containerPort: 8080
-          name: http
+          - containerPort: 8080
+            name: http
 ---
 apiVersion: v1
 kind: Service
@@ -100,6 +124,6 @@ spec:
   selector:
     app: kafka-ui
   ports:
-  - name: http
-    port: 8080
-    targetPort: 8080
+    - name: http
+      port: 8080
+      targetPort: 8080

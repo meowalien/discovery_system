@@ -21,4 +21,4 @@ log_file_path: "/Users/jacky_li/logs/telegram_reader.log"
 
 kafka:
   urls:
-    - "kafka:9092"
+    - "kafka-headless.default.svc.cluster.local:9092"
