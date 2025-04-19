@@ -36,4 +36,7 @@ class RedisKey:
     """
     Enum-like class to define Redis keys.
     """
-    SESSION = "session"
+    # a set to store all reader nodes
+    TELEGRAM_READERS = "telegram_readers"
+    # a set to store all sessions in the reader node
+    TELEGRAM_READER_SESSIONS = "telegram_reader_sessions"
