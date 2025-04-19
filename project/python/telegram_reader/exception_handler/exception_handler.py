@@ -1,7 +1,7 @@
 from fastapi import FastAPI,Request
 from starlette.responses import JSONResponse
 
-from logger_config import get_logger
+from logger.logger import get_logger
 
 _logger = get_logger(__name__)
 

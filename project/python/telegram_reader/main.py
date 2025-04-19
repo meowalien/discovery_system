@@ -7,11 +7,11 @@ import telegram_reader_pb2_grpc
 from config import HOSTNAME, GRPC_PORT
 from core.telegram_client_manager import telegram_client_manager
 from data_source.redis_client import redis_client
-from logger_config import get_logger
+from logger.logger import get_logger
 from middleware.grpc_interceptors import RequestIdInterceptor
-from redis_session_manager import RedisSessionManager
+from core.redis_session_manager import RedisSessionManager
 from routes.grpc import AsyncTelegramReaderServiceServicer
-from telemetry import setup_tracing
+from core.telemetry import setup_tracing
 from opentelemetry.instrumentation.grpc import aio_server_interceptor
 
 _logger = get_logger(__name__)

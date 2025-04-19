@@ -6,7 +6,7 @@ import telegram_reader_pb2_grpc
 from core.message_consumer import MessageConsumer
 from core.telegram_client_manager import TelegramClientManager
 from kafka_client.kafka_producer import producer
-from logger_config import get_logger
+from logger.logger import get_logger
 from util.util import is_valid_uuid4
 
 _logger = get_logger(__name__)

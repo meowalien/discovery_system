@@ -1,8 +1,6 @@
-import atexit
-
 import redis.asyncio as redis
 from config import REDIS_HOST, REDIS_PORT, REDIS_DB
-from logger_config import get_logger
+from logger.logger import get_logger
 
 # Create an asynchronous Redis client
 _redis_client = None

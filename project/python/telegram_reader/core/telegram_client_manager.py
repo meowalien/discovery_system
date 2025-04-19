@@ -8,9 +8,9 @@ from telethon.events.common import EventBuilder
 from data_source.postgres_client import postgres_session
 from db_module.telegram_client import SessionModel
 from exception.exception import EventHandlerAlreadyExistError
-from postgres_session import PostgresSession
+from core.postgres_session import PostgresSession
 from telethon.events import NewMessage
-from redis_session_manager import RedisSessionManager
+from core.redis_session_manager import RedisSessionManager
 
 class MyTelegramClient(TelegramClient):
     def __init__(self, session: PostgresSession, api_id: int, api_hash: str):

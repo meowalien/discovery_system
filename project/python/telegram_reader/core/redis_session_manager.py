@@ -1,7 +1,7 @@
 # File: redis_session_manager.py
 import asyncio
 from redis.asyncio import Redis
-from logger_config import get_logger
+from logger.logger import get_logger
 
 _logger = get_logger(__name__)
 

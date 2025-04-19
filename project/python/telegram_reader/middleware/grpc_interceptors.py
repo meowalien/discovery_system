@@ -2,7 +2,7 @@
 import uuid
 from types import SimpleNamespace
 from grpc import aio
-from logger_config import request_context
+from logger.logger import request_context
 
 class RequestIdInterceptor(aio.ServerInterceptor):
     async def intercept_service(self, continuation, handler_call_details):

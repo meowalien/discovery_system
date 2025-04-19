@@ -1,5 +1,4 @@
 import asyncio
-import atexit
 from contextlib import contextmanager, asynccontextmanager
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine, async_sessionmaker
@@ -7,7 +6,7 @@ from sqlalchemy import text, create_engine, Engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from config import POSTGRES_URL
-from logger_config import get_logger
+from logger.logger import get_logger
 
 _logger = get_logger(__name__)
 
