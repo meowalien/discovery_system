@@ -22,7 +22,7 @@ POSTGRES_URL = postgres_config.get("url", "postgresql://postgres:postgres@localh
 
 http_config = config.get("http", {})
 HTTP_PORT = int(http_config.get("port", 8001))
-HTTP_LOG_LEVEL = http_config.get("log_level", "debug")
+
 
 grpc_config = config.get("grpc", {})
 GRPC_PORT = int(grpc_config.get("port", 50051))
@@ -48,3 +48,6 @@ if KAFKA_BROKER_URLS is None:
     raise ValueError("KAFKA_BROKER_URLS is not found in the configuration file.")
 
 HOSTNAME = os.getenv("HOSTNAME", "localhost")
+
+
+LOG_LEVEL = config.get("log_level", "debug")

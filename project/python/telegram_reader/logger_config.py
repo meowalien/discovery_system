@@ -2,15 +2,15 @@
 import contextvars
 import logging
 import os
+from types import SimpleNamespace
 
 import pythonjsonlogger
-from fastapi import Request
 from opentelemetry import trace
 
-from config import SERVICE_NAME, HTTP_LOG_LEVEL, LOG_FILE_PATH
+from config import SERVICE_NAME, LOG_LEVEL, LOG_FILE_PATH
 
 # 建立全域 context 變數，供 middleware 設定 request 物件
-request_context: contextvars.ContextVar[Request | None] = contextvars.ContextVar("request_context", default=None)
+request_context: contextvars.ContextVar[SimpleNamespace | None] = contextvars.ContextVar("request_context", default=None)
 
 
 class OTelContextFilter(logging.Filter):
@@ -40,7 +40,7 @@ def get_logger(name: str = SERVICE_NAME):
     if logger.handlers:
         return logger
 
-    logger.setLevel(HTTP_LOG_LEVEL.upper() if isinstance(HTTP_LOG_LEVEL, str) else logging.INFO)
+    logger.setLevel(LOG_LEVEL.upper() if isinstance(LOG_LEVEL, str) else logging.INFO)
 
     # JSON Formatter for file handler
     json_formatter = pythonjsonlogger.json.JsonFormatter(
