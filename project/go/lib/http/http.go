@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"go-root/lib/env"
-	"go-root/lib/graceful_shutdown"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -42,14 +41,14 @@ func (h *httpEngine) Start(addr string) error {
 		return errors.New("server already started")
 	}
 
-	graceful_shutdown.AddFinalizer(func(ctx context.Context) {
-		// stop http server gracefully when receive shutdown signal
-		if err := h.Stop(ctx); err != nil {
-			logrus.Errorf("fail to stop http server: %v", err)
-		} else {
-			logrus.Infof("http server stopped")
-		}
-	})
+	//graceful_shutdown.AddFinalizer(func(ctx context.Context) {
+	//	// stop http server gracefully when receive shutdown signal
+	//	if err := h.Stop(ctx); err != nil {
+	//		logrus.Errorf("fail to stop http server: %v", err)
+	//	} else {
+	//		logrus.Infof("http server stopped")
+	//	}
+	//})
 
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err

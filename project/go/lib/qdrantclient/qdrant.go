@@ -5,7 +5,6 @@ import (
 	"github.com/qdrant/go-client/qdrant"
 	"github.com/sirupsen/logrus"
 	"go-root/lib/config"
-	"go-root/lib/graceful_shutdown"
 	"sync/atomic"
 )
 
@@ -36,17 +35,17 @@ func InitQdrant() {
 		logrus.Fatalf("Failed to connect to qdrant: %v", err)
 	}
 
-	graceful_shutdown.AddFinalizer(func(ctx context.Context) {
-		c := qdrantClient.Load()
-		if c == nil {
-			return
-		}
-		e := c.Close()
-		if e != nil {
-			logrus.Errorf("qdrant client close fail: %v", e)
-		}
-		logrus.Infof("qdrant client finalized")
-	})
+	//graceful_shutdown.AddFinalizer(func(ctx context.Context) {
+	//	c := qdrantClient.Load()
+	//	if c == nil {
+	//		return
+	//	}
+	//	e := c.Close()
+	//	if e != nil {
+	//		logrus.Errorf("qdrant client close fail: %v", e)
+	//	}
+	//	logrus.Infof("qdrant client finalized")
+	//})
 
 	swaped := qdrantClient.CompareAndSwap(nil, client)
 	if !swaped {

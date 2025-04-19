@@ -8,6 +8,27 @@ import (
 	"sync/atomic"
 )
 
+type Postgres struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	DB       string `mapstructure:"db"`
+	SSLMode  string `mapstructure:"sslmode"`
+	TimeZone string `mapstructure:"timezone"`
+}
+
+func (p Postgres) DSN() string {
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=%s", p.Host, p.User, p.Password, p.DB, p.Port, p.SSLMode, p.TimeZone)
+}
+
+type RedisConfig struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Password string `mapstructure:"password"`
+	DB       int    `mapstructure:"db"`
+}
+
 type Config struct {
 	Qdrant struct {
 		Host   string `mapstructure:"host"`
@@ -18,6 +39,8 @@ type Config struct {
 		Host string `mapstructure:"host"`
 		Port int    `mapstructure:"port"`
 	} `mapstructure:"embedding_service"`
+	Postgres Postgres    `mapstructure:"postgres"`
+	Redis    RedisConfig `mapstructure:"redis"`
 }
 
 var config atomic.Pointer[Config]

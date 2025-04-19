@@ -1,12 +1,10 @@
 package log
 
 import (
-	"context"
 	"fmt"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
 	"go-root/lib/env"
-	"go-root/lib/graceful_shutdown"
 	"io"
 	"os"
 	"path/filepath"
@@ -137,14 +135,6 @@ func NewLogger() Logger {
 		formatter:   &formatter,
 		FieldLogger: newLog.WithFields(logrus.Fields{}),
 	}
-
-	graceful_shutdown.AddFinalizer(func(ctx context.Context) {
-		e := newLogger.Close()
-		if e != nil {
-			logrus.Errorf("logger close fail: %v", e)
-		}
-		logrus.Infof("logger finalized: %s", logPath)
-	})
 
 	return newLogger
 }

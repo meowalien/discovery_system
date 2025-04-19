@@ -49,6 +49,7 @@ spec:
         - name: gcp-artifact-registry
       containers:
         - name: telegram-reader
+          imagePullPolicy: Always
           image: asia-east1-docker.pkg.dev/homepage-436511/docker-repo/telegram_reader:latest
           ports:
             - name: grpc

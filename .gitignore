@@ -5,3 +5,5 @@
 /project/python/telegram_reader/.venv/
 /backup/
 /project/go/project/datacollector/
+/project/go/project/
+/project/go/*.log

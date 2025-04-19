@@ -52,7 +52,8 @@ def start_read_message(session_id, stub):
 
 def main():
     # 1) 建立 channel 與 stub
-    channel = grpc.insecure_channel('localhost:50051')
+    # channel = grpc.insecure_channel('localhost:50051')
+    channel = grpc.insecure_channel('telegram-reader:50051')
     stub = pb_grpc.TelegramReaderServiceStub(channel)
 
     # 2) CreateClient

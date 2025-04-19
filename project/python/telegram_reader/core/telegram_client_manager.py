@@ -39,7 +39,7 @@ class TelegramClientManager:
             record = session.query(SessionModel).filter_by(session_id=session_id).first()
             if not record:
                 raise Exception(f"Session {session_id} not found in database")
-            client = await self._load_or_create_client(session_id, record.api_id, record.api_hash)
+            await self._load_or_create_client(session_id, record.api_id, record.api_hash)
             return session_id
 
     async def unload_client(self, session_id: str):
