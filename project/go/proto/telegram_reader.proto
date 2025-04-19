@@ -1,0 +1,71 @@
+syntax = "proto3";
+package telegram;
+
+option go_package = "./proto_impl/telegram_reader";
+
+import "google/protobuf/empty.proto";
+
+
+service TelegramReaderService {
+  rpc CreateClient(CreateClientRequest) returns (CreateClientResponse);
+  rpc LoadClient(LoadClientRequest) returns (google.protobuf.Empty);
+  rpc UnLoadClient(UnLoadClientRequest) returns (google.protobuf.Empty);
+  rpc SignInClient(SignInClientRequest) returns (SignInClientResponse);
+  rpc CompleteSignInClient(CompleteSignInRequest) returns (google.protobuf.Empty);
+  rpc ListClients(google.protobuf.Empty) returns (ListClientsResponse);
+  rpc GetDialogs(GetDialogsRequest) returns (GetDialogsResponse);
+  rpc StartReadMessage(StartReadMessageRequest) returns (google.protobuf.Empty);
+}
+
+message CreateClientRequest {
+  int32 api_id = 1;
+  string api_hash = 2;
+}
+message CreateClientResponse {
+  string session_id = 1;
+}
+
+message UnLoadClientRequest {
+  string session_id = 1;
+}
+
+message LoadClientRequest {
+  string session_id = 1;
+}
+
+message SignInClientRequest {
+  string session_id = 1;
+  string phone = 2;
+}
+message SignInClientResponse {
+  enum Status { NEED_CODE = 0; SUCCESS = 1; }
+  Status status = 1;
+  string phone_code_hash = 2;
+}
+
+message CompleteSignInRequest {
+  string session_id = 1;
+  string phone = 2;
+  string code = 3;
+  string phone_code_hash = 4;
+  string password = 5;
+}
+
+message ListClientsResponse {
+  repeated string session_ids = 1;
+}
+
+message GetDialogsRequest {
+  string session_id = 1;
+}
+message Dialog {
+  int64 id = 1;
+  string title = 2;
+}
+message GetDialogsResponse {
+  repeated Dialog dialogs = 1;
+}
+
+message StartReadMessageRequest {
+  string session_id = 1;
+}
