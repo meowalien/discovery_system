@@ -20,11 +20,11 @@ func (m myTelegramReaderServiceClient) GetName() string {
 	return m.name
 }
 
-func NewMyTelegramReaderServiceClient(addr string, name string) (MyTelegramReaderServiceClient, error) {
+func NewMyTelegramReaderServiceClient(addr string, clientName string) (MyTelegramReaderServiceClient, error) {
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
 
-	return &myTelegramReaderServiceClient{TelegramReaderServiceClient: telegram_reader.NewTelegramReaderServiceClient(conn), name: name}, nil
+	return &myTelegramReaderServiceClient{TelegramReaderServiceClient: telegram_reader.NewTelegramReaderServiceClient(conn), name: clientName}, nil
 }

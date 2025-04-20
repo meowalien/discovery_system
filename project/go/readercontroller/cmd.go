@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"go-root/lib/config"
+	"go-root/config"
 	"go-root/lib/data_source"
 	"go-root/lib/env"
 	"go-root/lib/graceful_shutdown"

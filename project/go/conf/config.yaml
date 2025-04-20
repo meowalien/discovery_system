@@ -2,6 +2,7 @@ qdrant:
   host: "34.81.62.96"
   port: 6334
   api_key: "4tu892hl#%$^&pjo:gne;w*&("
+
 embedding_service:
   host: "localhost"
   port: 50051
@@ -20,3 +21,6 @@ redis:
     port: 6379
     password: ""
     db: 0
+
+telegram_reader:
+  headless_url: "telegram-reader-headless.default.svc.cluster.local:50051"

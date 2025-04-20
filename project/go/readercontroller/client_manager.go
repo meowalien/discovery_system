@@ -2,7 +2,9 @@ package readercontroller
 
 import (
 	"context"
+	"fmt"
 	"github.com/redis/go-redis/v9"
+	"go-root/config"
 	"go-root/lib/errs"
 	"go-root/proto_impl/telegram_reader"
 	"strings"
@@ -33,8 +35,10 @@ func (c *clientManager) SyncClient(ctx context.Context) error {
 	clients := make([]MyTelegramReaderServiceClient, 0)
 	for _, key := range keys {
 		hostName := strings.Split(key, ":")[1]
+		headlessURL := config.GetConfig().TelegramReader.HeadlessURL
+		fqdn := fmt.Sprintf("%s.%s", hostName, headlessURL)
 
-		client, err := NewMyTelegramReaderServiceClient(key, key)
+		client, err := NewMyTelegramReaderServiceClient(fqdn, key)
 		if err != nil {
 			return errs.New(err)
 		}

@@ -39,8 +39,11 @@ type Config struct {
 		Host string `mapstructure:"host"`
 		Port int    `mapstructure:"port"`
 	} `mapstructure:"embedding_service"`
-	Postgres Postgres    `mapstructure:"postgres"`
-	Redis    RedisConfig `mapstructure:"redis"`
+	Postgres       Postgres    `mapstructure:"postgres"`
+	Redis          RedisConfig `mapstructure:"redis"`
+	TelegramReader struct {
+		HeadlessURL string `mapstructure:"headless_url"`
+	} `mapstructure:"telegram_reader"`
 }
 
 var config atomic.Pointer[Config]

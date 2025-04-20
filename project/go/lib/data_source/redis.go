@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/redis/go-redis/v9"
-	"go-root/lib/config"
+	"go-root/config"
 	"strings"
 	"time"
 )

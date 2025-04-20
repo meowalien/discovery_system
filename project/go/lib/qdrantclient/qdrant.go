@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/qdrant/go-client/qdrant"
 	"github.com/sirupsen/logrus"
-	"go-root/lib/config"
+	"go-root/config"
 	"sync/atomic"
 )
 
