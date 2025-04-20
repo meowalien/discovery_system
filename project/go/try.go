@@ -1,41 +1,61 @@
 package main
 
 import (
-	"log"
-
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"context"
+	"errors"
+	"fmt"
+	"github.com/redis/go-redis/v9"
+	"net"
+	"time"
 )
 
+func watchSetEvents(ctx context.Context, client *redis.Client, key string) error {
+	pubsub := client.PSubscribe(ctx, "__keyspace@0__:"+key)
+	// call pubsub.Close() after 3 seconds
+	//time.AfterFunc(3*time.Second, func() {
+	//	pubsub.Close()
+	//	fmt.Println("PubSub closed after 3 seconds")
+	//})
+
+	//defer pubsub.Close()
+
+	for {
+		msg, err := pubsub.ReceiveMessage(ctx)
+		if err != nil {
+			// 1) Context 被取消（或逾時）
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				fmt.Println("🔒 上層 Context 已結束，退出監聽")
+				return err
+			}
+			// 2) pubsub/Client 被 Close
+			if errors.Is(err, redis.ErrClosed) || errors.Is(err, net.ErrClosed) {
+				fmt.Println("🔌 Redis 客戶端或 PubSub 已關閉")
+				return nil
+			}
+			// 3) 可能是網路層的永久性錯誤
+			fmt.Printf("❌ 接收訊息發生錯誤：%v，準備重試...\n", err)
+			time.Sleep(time.Second) // backoff
+			continue
+		}
+
+		// 如果沒有錯誤，就是正常收到訊息
+		fmt.Printf("收到消息: %s (from channel %s)\n", msg.Payload, msg.Channel)
+		switch msg.Payload {
+		case "sadd":
+			fmt.Printf("有成員被加入到 %s\n", key)
+		case "srem":
+			fmt.Printf("有成員被從 %s 移除\n", key)
+		}
+	}
+}
+
 func main() {
-	// 你的連線字串
-	dsn := "postgresql://postgres:postgres@postgres-headless.default:5432/discovery_system"
-
-	// 開啟 GORM 連線
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("❌ 無法連接資料庫: %v", err)
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second)
+	defer cancel()
+	client := redis.NewClient(&redis.Options{
+		Addr: "redis:6379",
+	})
+	if err := watchSetEvents(ctx, client, "telegram_reader_sessions:localhost"); err != nil {
+		panic(err)
 	}
-
-	// 取得底層 *sql.DB 以進行 Ping 或其他設定
-	sqlDB, err := db.DB()
-	if err != nil {
-		log.Fatalf("❌ 取得底層資料庫物件失敗: %v", err)
-	}
-
-	// 確認連線存活
-	if err := sqlDB.Ping(); err != nil {
-		log.Fatalf("❌ 資料庫 Ping 失敗: %v", err)
-	}
-
-	log.Println("✅ 成功連接到 PostgreSQL！")
-	// 如果有 model，需要自動遷移可以這樣呼叫：
-	// type User struct {
-	//   ID    uint
-	//   Name  string
-	//   Email string
-	// }
-	// if err := db.AutoMigrate(&User{}); err != nil {
-	//   log.Fatalf("❌ 自動遷移失敗: %v", err)
-	// }
 }

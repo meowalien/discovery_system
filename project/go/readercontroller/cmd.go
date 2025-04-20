@@ -36,7 +36,15 @@ func Cmd(cmd *cobra.Command, args []string) {
 	}
 	globalLogger.Infof("Starting gRPC server...")
 	manager := NewClientManager(redisClient)
-	err = manager.SyncClient()
+	graceful_shutdown.AddFinalizer(func(ctx context.Context) {
+		e := manager.Close(ctx)
+		if e != nil {
+			globalLogger.Errorf("ClientManager close fail: %v", e)
+		}
+		globalLogger.Info("ClientManager finalized")
+	})
+
+	err = manager.SyncClient(ctx)
 	if err != nil {
 		globalLogger.Fatalf("failed to sync client: %v", err)
 	}

@@ -17,6 +17,10 @@ spec:
       containers:
       - name: redis
         image: redis:latest
+        # CONFIG SET notify-keyspace-events Ks
+        args:
+          - "--notify-keyspace-events"
+          - "Ks"
         ports:
         - containerPort: 6379
           name: redis
