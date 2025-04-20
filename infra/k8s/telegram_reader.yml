@@ -32,10 +32,11 @@ data:
         - "kafka-headless.default.svc.cluster.local:9092"
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: telegram-reader
 spec:
+  serviceName: telegram-reader-headless
   replicas: 1
   selector:
     matchLabels:
@@ -49,8 +50,8 @@ spec:
         - name: gcp-artifact-registry
       containers:
         - name: telegram-reader
-          imagePullPolicy: Always
           image: asia-east1-docker.pkg.dev/homepage-436511/docker-repo/telegram_reader:latest
+          imagePullPolicy: Always
           ports:
             - name: grpc
               containerPort: 50051
@@ -66,8 +67,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: telegram-reader
+  name: telegram-reader-headless
 spec:
+  clusterIP: None
   selector:
     app: telegram-reader
   ports:

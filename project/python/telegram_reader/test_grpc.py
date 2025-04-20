@@ -1,4 +1,6 @@
 # grpc_test.py
+import os
+
 import grpc
 
 import telegram_reader_pb2 as pb
@@ -51,9 +53,11 @@ def start_read_message(session_id, stub):
     return True
 
 def main():
+    # make sure it's set before any gRPC work:
+    os.environ.setdefault('GRPC_DNS_RESOLVER', 'native')
     # 1) 建立 channel 與 stub
     # channel = grpc.insecure_channel('localhost:50051')
-    channel = grpc.insecure_channel('telegram-reader:50051')
+    channel = grpc.insecure_channel('dns:///telegram-reader-0.telegram-reader-headless.default.svc.cluster.local:50051')
     stub = pb_grpc.TelegramReaderServiceStub(channel)
 
     # 2) CreateClient

@@ -47,7 +47,7 @@ func (r *readerController) checkIfSessionExist(ctx context.Context, sessionID st
 	return true, nil
 }
 func (r *readerController) CreateClient(ctx context.Context, apiID int32, apiHash string, userID string) (sessionID string, err error) {
-	client, err := r.manager.FindAvailableClient()
+	client, err := r.manager.FindAvailableClient(ctx)
 	if err != nil {
 		return "", errs.New(err)
 	}
@@ -82,7 +82,7 @@ func (r *readerController) LoadClient(ctx context.Context, sessionID string, use
 	if !exist {
 		return errs.New("session ID for user: %s, session ID: %s not found", userID, sessionID)
 	}
-	client, exist, err := r.manager.FindClientBySessionID(sessionID)
+	client, exist, err := r.manager.FindClientBySessionID(ctx, sessionID)
 	if err != nil {
 		return errs.New(err)
 	}
@@ -90,7 +90,7 @@ func (r *readerController) LoadClient(ctx context.Context, sessionID string, use
 		return errs.New("client for session ID: %s already loaded, running on %s", sessionID, client.GetName())
 	}
 
-	availableClient, err := r.manager.FindAvailableClient()
+	availableClient, err := r.manager.FindAvailableClient(ctx)
 	_, err = availableClient.LoadClient(ctx, &telegram_reader.LoadClientRequest{
 		SessionId: sessionID,
 	})
@@ -109,7 +109,7 @@ func (r *readerController) UnLoadClient(ctx context.Context, sessionID string, u
 		return errs.New("session ID for user: %s, session ID: %s not found", userID, sessionID)
 	}
 
-	client, exist, err := r.manager.FindClientBySessionID(sessionID)
+	client, exist, err := r.manager.FindClientBySessionID(ctx, sessionID)
 	if err != nil {
 		return errs.New(err)
 	}
@@ -134,7 +134,7 @@ func (r *readerController) SignInClient(ctx context.Context, sessionID string, p
 	if !exist {
 		return 0, "", errs.New("session ID for user: %s, session ID: %s not found", userID, sessionID)
 	}
-	client, exist, err := r.manager.FindClientBySessionID(sessionID)
+	client, exist, err := r.manager.FindClientBySessionID(ctx, sessionID)
 	if err != nil {
 		return 0, "", errs.New(err)
 	}
@@ -167,7 +167,7 @@ func (r *readerController) CompleteSignInClient(ctx context.Context, sessionID, 
 	if !exist {
 		return errs.New("session ID for user: %s, session ID: %s not found", userID, sessionID)
 	}
-	client, exist, err := r.manager.FindClientBySessionID(sessionID)
+	client, exist, err := r.manager.FindClientBySessionID(ctx, sessionID)
 	if err != nil {
 		return errs.New(err)
 	}
@@ -213,7 +213,7 @@ func (r *readerController) GetDialogs(ctx context.Context, sessionID string, use
 	if !exist {
 		return nil, errs.New("session ID for user: %s, session ID: %s not found", userID, sessionID)
 	}
-	client, exist, err := r.manager.FindClientBySessionID(sessionID)
+	client, exist, err := r.manager.FindClientBySessionID(ctx, sessionID)
 	if err != nil {
 		return nil, errs.New(err)
 	}
@@ -244,7 +244,7 @@ func (r *readerController) StartReadMessage(ctx context.Context, sessionID strin
 	if !exist {
 		return errs.New("session ID for user: %s, session ID: %s not found", userID, sessionID)
 	}
-	client, exist, err := r.manager.FindClientBySessionID(sessionID)
+	client, exist, err := r.manager.FindClientBySessionID(ctx, sessionID)
 	if err != nil {
 		return errs.New(err)
 	}
