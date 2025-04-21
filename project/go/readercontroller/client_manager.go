@@ -1,17 +1,13 @@
 package readercontroller
 
 import (
-	"container/heap"
 	"context"
-	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"go-root/config"
 	"go-root/lib/errs"
 	"go-root/lib/log"
-	"net"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -25,29 +21,50 @@ type clientManager struct {
 	redisClient                       redis.UniversalClient
 	dal                               DAL
 	logger                            log.Logger
-	sessionIDToClientMap              sync.Map // *myTelegramReaderServiceClientWithReferenceCount
+	sessionIDToClientMap              sync.Map // map[sessionID]*myTelegramReaderServiceClientWithReferenceCount
 	hostNameToSessionID               sync.Map //map[string]map[string]struct{}
-	serviceClientWithSessionCountHeap telegramReaderServiceClientHeap
+	serviceClientWithSessionCountHeap *telegramReaderServiceClientHeap
+	onClose                           []func(ctx context.Context) error
 }
 
 func (c *clientManager) Close(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	var err error
+	for i := len(c.onClose) - 1; i >= 0; i-- {
+		f := c.onClose[i]
+		e := f(ctx)
+		if e != nil {
+			if err == nil {
+				err = e
+			} else {
+				err = fmt.Errorf("%v; %w", err, e)
+			}
+		}
+	}
+
+	c.hostNameToSessionID.Range(func(hostName, _ interface{}) bool {
+		c.removeHostName(hostName.(string))
+		return true
+	})
+	return err
 }
 
 func (c *clientManager) FindAvailableClient(ctx context.Context) (MyTelegramReaderServiceClient, error) {
-	//TODO implement me
-	panic("implement me")
+	client, ok := c.serviceClientWithSessionCountHeap.Load(0)
+	if !ok {
+		return nil, fmt.Errorf("no available client")
+	}
+	return client, nil
 }
 
 // this should be called only once when the object is created
 func (c *clientManager) syncReaders(ctx context.Context) error {
 	onNew, onDelete, onError, closeFunc := c.dal.SubscribeTelegramReaderChange(ctx)
-	c.onCloseCallback(func() {
+	c.onCloseCallback(func(ctx context.Context) error {
 		err := closeFunc()
 		if err != nil {
-			c.logger.Errorf("error when close SubscribeTelegramReader: %v", errs.New(err))
+			return errs.New("error when close SubscribeTelegramReader: %s", err.Error())
 		}
+		return nil
 	})
 
 	go func() {
@@ -65,7 +82,6 @@ func (c *clientManager) syncReaders(ctx context.Context) error {
 					}
 				}
 				cancel()
-
 			case deletedClientHostNames, ok := <-onDelete:
 				if !ok {
 					return
@@ -95,205 +111,8 @@ func (c *clientManager) FindClientBySessionID(ctx context.Context, sessionID str
 	panic("implement me")
 }
 
-//func (c *clientManager) subscribeRedisSetChange(ctx context.Context, sessionKey string, onAddSession func(sllKeys []string), onDeleteSession func(sllKeys []string)) (closeFunc func() error) {
-//	pubsub := c.redisClient.PSubscribe(ctx, "__keyspace@0__:"+sessionKey)
-//	readSessions := func() []string {
-//		//	read all from sessionKey set
-//		sessions, e := c.redisClient.SMembers(context.Background(), sessionKey).Result()
-//		if e != nil {
-//			c.logger.Errorf("redis SMembers error: %v", errs.New(e))
-//		}
-//		return sessions
-//	}
-//	closeFunc = pubsub.Close
-//
-//	go func() {
-//		for {
-//			// ReceiveMessage 會自動處理 SUBSCRIBE, RECONNECT…並回傳 msg 或 err
-//			msg, err := pubsub.ReceiveMessage(context.Background())
-//			if err != nil {
-//				// 2) pubsub/Client 被 Close
-//				if errors.Is(err, redis.ErrClosed) || errors.Is(err, net.ErrClosed) {
-//					c.logger.Infof("redis PubSub for %s closed", sessionKey)
-//					return
-//				}
-//				c.logger.Errorf("redis PubSub error: %v, retry in 1 second", err)
-//				time.Sleep(time.Second) // backoff
-//				continue
-//			}
-//
-//			switch msg.Payload {
-//			case "sadd":
-//				sessions := readSessions()
-//				onAddSession(sessions)
-//			case "srem":
-//				sessions := readSessions()
-//				onDeleteSession(sessions)
-//			}
-//		}
-//	}()
-//	return closeFunc
-//}
-
-//func (c *clientManager) redisKeyToHostName(key string) (string, error) {
-//	keySlipt := strings.Split(key, ":")
-//	if len(keySlipt) != 2 {
-//		return "", errs.New(fmt.Errorf("invalid key format: %s", key))
-//	}
-//	hostName := keySlipt[1]
-//	return hostName, nil
-//}
-
-//func (c *clientManager) loadClientByRedisKey(ctx context.Context, key string) error {
-//	hostName, err := c.redisKeyToHostName(key)
-//	if err != nil {
-//		return errs.New(err)
-//	}
-//	headlessURL := config.GetConfig().TelegramReader.HeadlessURL
-//	addr := fmt.Sprintf("%s.%s", hostName, headlessURL)
-//
-//	client, e := NewMyTelegramReaderServiceClient(addr, hostName, c.redisClient)
-//	if e != nil {
-//		return errs.New(e)
-//	}
-//
-//	// ======
-//
-//	sessionsKey := data_source.MakeKey(REDIS_KEY_PREFIX_TELEGRAM_READER_SESSIONS, hostName)
-//
-//	sessions, err := c.redisClient.SMembers(ctx, sessionsKey).Result()
-//	if err != nil {
-//		return errs.New(err)
-//	}
-//
-//	sessionsInMemory := atomic.Pointer[map[string]struct{}]{}
-//	m := make(map[string]struct{})
-//	// initialize hostNameToClientMap
-//	for _, session := range sessions {
-//		m[session] = struct{}{}
-//		c.addSessionToClient(session, client)
-//	}
-//	sessionsInMemory.Store(&m)
-//
-//	updateSessions := func(newSessions []string) {
-//		added, missed, newMap := c.diffKeys(*sessionsInMemory.Load(), newSessions)
-//		for _, session := range added {
-//			c.addSessionToClient(session, client)
-//		}
-//		for _, session := range missed {
-//			c.deleteSessionToClient(session)
-//		}
-//		sessionsInMemory.Store(&newMap)
-//	}
-//
-//	closeFunc := c.subscribeRedisSetChange(ctx, sessionsKey, updateSessions, updateSessions)
-//
-//	// close when the client is closed
-//	client.addOnClose(func(ctx context.Context) error {
-//		return closeFunc()
-//	})
-//
-//	c.addHostNameToClient(hostName, client)
-//	return nil
-//}
-
-//
-//func (c *clientManager) removeClientByRedisKey(ctx context.Context, key string) error {
-//	hostName, err := c.redisKeyToHostName(key)
-//	if err != nil {
-//		return errs.New(err)
-//	}
-//	c.deleteHostNameToClient(hostName)
-//	return nil
-//}
-
-//func (c *clientManager) diffKeys(oldMap map[string]struct{}, newKeys []string) (added []string, missed []string, newMap map[string]struct{}) {
-//	// 建立新的 map，並在同時收集 Added
-//	newMap = make(map[string]struct{}, len(newKeys))
-//	for _, k := range newKeys {
-//		newMap[k] = struct{}{}
-//		if _, exists := oldMap[k]; !exists {
-//			added = append(added, k)
-//		}
-//	}
-//
-//	// 收集 Missed（在舊 map 但不在 newKeys）
-//	for k := range oldMap {
-//		if _, exists := newMap[k]; !exists {
-//			missed = append(missed, k)
-//		}
-//	}
-//	return
-//}
-
-//func (c *clientManager) synchronizeHostNameToClient(ctx context.Context) error {
-//	keysInMemory := atomic.Pointer[map[string]struct{}]{}
-//	m := make(map[string]struct{})
-//	keysInMemory.Store(&m)
-//
-//	// make sure either updating or initializing clients
-//	lock := sync.Mutex{}
-//
-//	updateKeys := func(newKeys []string) {
-//		lock.Lock()
-//		defer lock.Unlock()
-//		ctxTimeoot, cancel := context.WithTimeout(ctx, time.Second*5)
-//		defer cancel()
-//		added, missed, newMap := c.diffKeys(*keysInMemory.Load(), newKeys)
-//		for _, key := range added {
-//			e := c.loadClientByRedisKey(ctxTimeoot, key)
-//			if e != nil {
-//				c.logger.Errorf("loadClientByRedisKey error: %v", e.Error())
-//			}
-//		}
-//		for _, key := range missed {
-//			e := c.removeClientByRedisKey(ctxTimeoot, key)
-//			if e != nil {
-//				c.logger.Errorf("loadClientByRedisKey error: %v", e.Error())
-//			}
-//		}
-//		keysInMemory.Store(&newMap)
-//	}
-//
-//	closeFunc := c.subscribeRedisSetChange(ctx, REDIS_KEY_TELEGRAM_READERS, updateKeys, updateKeys)
-//	// close when clientManager close
-//	c.onCloseCallback(func() {
-//		e := closeFunc()
-//		if e != nil {
-//			c.logger.Errorf("redis PubSub close error: %v", errs.New(e))
-//		}
-//	})
-//
-//	keys, err := c.redisClient.SMembers(ctx, REDIS_KEY_TELEGRAM_READERS).Result()
-//	if err != nil {
-//		return errs.New(err)
-//	}
-//
-//	initializeClients := func(ctx context.Context, keys []string) error {
-//		lock.Lock()
-//		defer lock.Unlock()
-//		newM := make(map[string]struct{})
-//		for _, key := range keys {
-//			newM[key] = struct{}{}
-//			e := c.loadClientByRedisKey(ctx, key)
-//			if e != nil {
-//				return errs.New(e)
-//			}
-//		}
-//		keysInMemory.Store(&newM)
-//		return nil
-//	}
-//
-//	err = initializeClients(ctx, keys)
-//	if err != nil {
-//		return errs.New(err)
-//	}
-//
-//	return nil
-//}
-
-func (c *clientManager) onCloseCallback(f func()) {
-	panic("implement me")
+func (c *clientManager) onCloseCallback(f func(ctx context.Context) error) {
+	c.onClose = append(c.onClose, f)
 }
 
 func (c *clientManager) loadClientByHostName(ctx context.Context, hostName string) error {
@@ -305,11 +124,11 @@ func (c *clientManager) loadClientByHostName(ctx context.Context, hostName strin
 		return errs.New(err)
 	}
 
-	clientWithReferenceCount := &myTelegramReaderServiceClientWithReferenceCount{
-		MyTelegramReaderServiceClient: client,
-		referenceCountHeap:            &c.serviceClientWithSessionCountHeap,
-		logger:                        c.logger,
-	}
+	clientWithReferenceCount := NewMyTelegramReaderServiceClientWithReferenceCount(
+		client,
+		c.serviceClientWithSessionCountHeap,
+		c.logger,
+	)
 
 	err = c.syncReaderSessions(ctx, hostName, clientWithReferenceCount)
 	if err != nil {
@@ -418,104 +237,25 @@ func (c *clientManager) removeHostName(hostName string) {
 	}
 }
 
-type myTelegramReaderServiceClientWithReferenceCount struct {
-	MyTelegramReaderServiceClient
-	referenceCountHeap *telegramReaderServiceClientHeap
-	referenceCount     atomic.Uint32
-	logger             log.Logger
-}
-
-func (m *myTelegramReaderServiceClientWithReferenceCount) addOnClose(f func(ctx context.Context) error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *myTelegramReaderServiceClientWithReferenceCount) DeductSessionCount() uint32 {
-	if m.referenceCount.Load() == 0 {
-		// close MyTelegramReaderServiceClient and remove self from heap
-		err := m.Close(context.Background())
-		if err != nil {
-			m.logger.Errorf("error when closing client: %v", errs.New(err))
-		}
-		m.referenceCountHeap.Remove(m)
-		return 0
+func (c *clientManager) removeClientByHostName(_ context.Context, hostName string) error {
+	sessionIDs, loaded := c.hostNameToSessionID.Load(hostName)
+	if !loaded {
+		return errs.New("hostName %s not found in hostNameToSessionID map", hostName)
 	}
-	return m.referenceCount.Add(^uint32(0))
-}
-
-func (m *myTelegramReaderServiceClientWithReferenceCount) SetSessionCount(newVal uint32) {
-	m.referenceCount.Store(newVal)
-}
-
-func (m *myTelegramReaderServiceClientWithReferenceCount) AddSessionCount() uint32 {
-	return m.referenceCount.Add(1)
-}
-
-// telegramReaderServiceClientHeap 定義一個整數切片，實作 heap.Interface
-// 用來取得最少 session count 的 client
-type telegramReaderServiceClientHeap struct {
-	slice []*myTelegramReaderServiceClientWithReferenceCount
-	lock  sync.Mutex
-	index map[*myTelegramReaderServiceClientWithReferenceCount]int
-}
-
-// 以下四個方法構成 heap.Interface 的必要實作
-
-func (h *telegramReaderServiceClientHeap) Len() int { return len(h.slice) }
-func (h *telegramReaderServiceClientHeap) Less(i, j int) bool {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	return h.slice[i].referenceCount.Load() < h.slice[j].referenceCount.Load()
-} // 小頂堆：h[i] < h[j]
-// 如果想要大頂堆，改為 h[i] > h[j]
-
-func (h *telegramReaderServiceClientHeap) Swap(i, j int) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	h.slice[i], h.slice[j] = h.slice[j], h.slice[i]
-	// 同步更新映射
-	h.index[h.slice[i]] = i
-	h.index[h.slice[j]] = j
-}
-
-// Push 和 Pop 使用指標接收者，以便修改底層切片
-func (h *telegramReaderServiceClientHeap) Push(x interface{}) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	h.slice = append(h.slice, x.(*myTelegramReaderServiceClientWithReferenceCount))
-	h.index[x.(*myTelegramReaderServiceClientWithReferenceCount)] = len(h.slice) - 1
-}
-
-func (h *telegramReaderServiceClientHeap) Pop() interface{} {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	old := h.slice
-	n := len(old)
-	x := old[n-1]
-	h.slice = old[:n-1]
-	delete(h.index, x)
-	return x
-}
-
-func (h *telegramReaderServiceClientHeap) Remove(v *myTelegramReaderServiceClientWithReferenceCount) bool {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-
-	i, ok := h.index[v]
-	if !ok {
-		return false
-	}
-	heap.Remove(h, i)
-	return true
+	sessionIDs.(*sync.Map).Range(func(key, _ interface{}) bool {
+		sessionID := key.(string)
+		// will automatically remove hostName from c.hostNameToSessionID when last sessionID removed
+		c.removeSessionIDToClient(hostName, sessionID)
+		return true
+	})
+	return nil
 }
 
 func NewClientManager(ctx context.Context, redisClient redis.UniversalClient, logger log.Logger) (ClientManager, error) {
 	manager := &clientManager{
-		redisClient: redisClient,
-		logger:      logger,
-		serviceClientWithSessionCountHeap: telegramReaderServiceClientHeap{
-			index: make(map[*myTelegramReaderServiceClientWithReferenceCount]int),
-		},
+		redisClient:                       redisClient,
+		logger:                            logger,
+		serviceClientWithSessionCountHeap: NewTelegramReaderServiceClientHeap(),
 	}
 	err := manager.syncReaders(ctx)
 	if err != nil {
