@@ -1,4 +1,4 @@
-package readercontroller
+package dal
 
 import (
 	"context"

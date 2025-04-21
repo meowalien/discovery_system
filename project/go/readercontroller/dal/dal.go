@@ -1,4 +1,4 @@
-package readercontroller
+package dal
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go-root/lib/data_source"
 	"go-root/lib/errs"
+	"go-root/readercontroller/enum"
 	"gorm.io/gorm"
 	"strings"
 	"time"
@@ -40,7 +41,7 @@ func (d *dal) SubscribeTelegramReaderSessionChange(ctx context.Context, hostName
 
 	subscriber := &redisSetSubscriber{
 		dal:          d,
-		sessionKey:   data_source.MakeKey(REDIS_KEY_PREFIX_TELEGRAM_READER_SESSIONS, hostName),
+		sessionKey:   data_source.MakeKey(enum.REDIS_KEY_PREFIX_TELEGRAM_READER_SESSIONS, hostName),
 		sessionCache: make(map[string]struct{}),
 		newCh:        newCh,
 		delCh:        delCh,
@@ -71,7 +72,7 @@ func (d *dal) SubscribeTelegramReaderChange(ctx context.Context) (
 
 	subscriber := &redisSetSubscriber{
 		dal:          d,
-		sessionKey:   REDIS_KEY_TELEGRAM_READERS,
+		sessionKey:   enum.REDIS_KEY_TELEGRAM_READERS,
 		sessionCache: make(map[string]struct{}),
 		newCh:        newCh,
 		delCh:        delCh,

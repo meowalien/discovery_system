@@ -12,6 +12,7 @@ import (
 	"go-root/lib/grpc"
 	"go-root/lib/log"
 	"go-root/proto_impl/reader_controller"
+	"go-root/readercontroller/dal"
 	"time"
 )
 
@@ -34,10 +35,10 @@ func Cmd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		globalLogger.Fatalf("failed to connect to database: %v", err)
 	}
-	dataAccessLayer := NewDAL(db, redisClient)
+	dataAccessLayer := dal.NewDAL(db, redisClient)
 
 	globalLogger.Infof("Starting gRPC server...")
-	manager, err := NewClientManager(ctx, redisClient, globalLogger)
+	manager, err := NewClientManager(ctx, globalLogger, dataAccessLayer)
 	if err != nil {
 		globalLogger.Fatalf("failed to create client manager: %v", err)
 	}

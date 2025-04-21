@@ -3,10 +3,10 @@ package readercontroller
 import (
 	"context"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"go-root/config"
 	"go-root/lib/errs"
 	"go-root/lib/log"
+	"go-root/readercontroller/dal"
 	"sync"
 	"time"
 )
@@ -18,8 +18,7 @@ type ClientManager interface {
 }
 
 type clientManager struct {
-	redisClient                       redis.UniversalClient
-	dal                               DAL
+	dal                               dal.DAL
 	logger                            log.Logger
 	sessionIDToClientMap              sync.Map // map[sessionID]*myTelegramReaderServiceClientWithReferenceCount
 	hostNameToSessionID               sync.Map //map[string]map[string]struct{}
@@ -119,7 +118,7 @@ func (c *clientManager) loadClientByHostName(ctx context.Context, hostName strin
 	headlessURL := config.GetConfig().TelegramReader.HeadlessURL
 	addr := fmt.Sprintf("%s.%s", hostName, headlessURL)
 
-	client, err := NewMyTelegramReaderServiceClient(addr, hostName, c.redisClient)
+	client, err := NewMyTelegramReaderServiceClient(addr, hostName)
 	if err != nil {
 		return errs.New(err)
 	}
@@ -251,9 +250,9 @@ func (c *clientManager) removeClientByHostName(_ context.Context, hostName strin
 	return nil
 }
 
-func NewClientManager(ctx context.Context, redisClient redis.UniversalClient, logger log.Logger) (ClientManager, error) {
+func NewClientManager(ctx context.Context, logger log.Logger, dataAccessLayer dal.DAL) (ClientManager, error) {
 	manager := &clientManager{
-		redisClient:                       redisClient,
+		dal:                               dataAccessLayer,
 		logger:                            logger,
 		serviceClientWithSessionCountHeap: NewTelegramReaderServiceClientHeap(),
 	}

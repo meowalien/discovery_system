@@ -1,4 +1,4 @@
-package readercontroller
+package enum
 
 // A set to list all reader services
 const REDIS_KEY_TELEGRAM_READERS = "telegram_readers"

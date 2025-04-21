@@ -2,7 +2,6 @@ package readercontroller
 
 import (
 	"context"
-	"github.com/redis/go-redis/v9"
 	"go-root/proto_impl/telegram_reader"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -16,9 +15,8 @@ type MyTelegramReaderServiceClient interface {
 
 type myTelegramReaderServiceClient struct {
 	telegram_reader.TelegramReaderServiceClient
-	grpcConn    *grpc.ClientConn
-	hostName    string
-	redisClient redis.UniversalClient
+	grpcConn *grpc.ClientConn
+	hostName string
 }
 
 func (m *myTelegramReaderServiceClient) Close(ctx context.Context) error {
@@ -29,11 +27,11 @@ func (m *myTelegramReaderServiceClient) GetName() string {
 	return m.hostName
 }
 
-func NewMyTelegramReaderServiceClient(addr string, hostName string, redisClient redis.UniversalClient) (MyTelegramReaderServiceClient, error) {
+func NewMyTelegramReaderServiceClient(addr string, hostName string) (MyTelegramReaderServiceClient, error) {
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
 
-	return &myTelegramReaderServiceClient{TelegramReaderServiceClient: telegram_reader.NewTelegramReaderServiceClient(conn), grpcConn: conn, hostName: hostName, redisClient: redisClient}, nil
+	return &myTelegramReaderServiceClient{TelegramReaderServiceClient: telegram_reader.NewTelegramReaderServiceClient(conn), grpcConn: conn, hostName: hostName}, nil
 }

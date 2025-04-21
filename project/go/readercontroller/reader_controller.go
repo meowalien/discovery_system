@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"go-root/lib/errs"
 	"go-root/proto_impl/telegram_reader"
+	"go-root/readercontroller/dal"
 )
 
 type Dialog struct {
@@ -30,7 +31,7 @@ type ReaderController interface {
 }
 
 type readerController struct {
-	db      DAL
+	db      dal.DAL
 	manager ClientManager
 }
 
@@ -60,7 +61,7 @@ func (r *readerController) CreateClient(ctx context.Context, apiID int32, apiHas
 		return "", errs.New(err)
 	}
 
-	err = r.db.CreateTelegramClient(ctx, TelegramClient{
+	err = r.db.CreateTelegramClient(ctx, dal.TelegramClient{
 		UserID:    userID,
 		SessionID: sessionIDUUID,
 	})
@@ -254,6 +255,6 @@ func (r *readerController) StartReadMessage(ctx context.Context, sessionID strin
 	return nil
 }
 
-func NewReaderController(db DAL, manager ClientManager) ReaderController {
+func NewReaderController(db dal.DAL, manager ClientManager) ReaderController {
 	return &readerController{db: db, manager: manager}
 }
