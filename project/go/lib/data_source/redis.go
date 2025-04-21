@@ -10,7 +10,7 @@ import (
 )
 
 // NewRedisClient initializes and returns a *redis.Client
-func NewRedisClient(ctx context.Context, redisConfig config.RedisConfig) (*redis.Client, error) {
+func NewRedisClient(ctx context.Context, redisConfig config.RedisConfig) (redis.UniversalClient, error) {
 	opts := &redis.Options{
 		Addr:         fmt.Sprintf("%s:%d", redisConfig.Host, redisConfig.Port), // Redis server address
 		Password:     redisConfig.Password,                                     // set if your Redis requires a password

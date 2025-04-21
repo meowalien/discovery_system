@@ -2,11 +2,9 @@ package readercontroller
 
 import (
 	"context"
-	"errors"
 	"github.com/google/uuid"
 	"go-root/lib/errs"
 	"go-root/proto_impl/telegram_reader"
-	"gorm.io/gorm"
 )
 
 type Dialog struct {
@@ -32,19 +30,17 @@ type ReaderController interface {
 }
 
 type readerController struct {
-	db      *gorm.DB
+	db      DAL
 	manager ClientManager
 }
 
 func (r *readerController) checkIfSessionExist(ctx context.Context, sessionID string, userID string) (bool, error) {
-	err := r.db.WithContext(ctx).Where("user_id = ? AND session_id = ?", userID, sessionID).Take(&TelegramClient{}).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return false, nil
-	}
+	exist, err := r.db.CheckIfSessionExist(ctx, sessionID, userID)
 	if err != nil {
 		return false, errs.New(err)
 	}
-	return true, nil
+	return exist, nil
+
 }
 func (r *readerController) CreateClient(ctx context.Context, apiID int32, apiHash string, userID string) (sessionID string, err error) {
 	client, err := r.manager.FindAvailableClient(ctx)
@@ -64,13 +60,14 @@ func (r *readerController) CreateClient(ctx context.Context, apiID int32, apiHas
 		return "", errs.New(err)
 	}
 
-	res := r.db.Create(&TelegramClient{
+	err = r.db.CreateTelegramClient(ctx, TelegramClient{
 		UserID:    userID,
 		SessionID: sessionIDUUID,
 	})
-	if res.Error != nil {
-		return "", errs.New(res.Error)
+	if err != nil {
+		return "", errs.New(err)
 	}
+
 	return sessionID, nil
 }
 
@@ -188,14 +185,11 @@ func (r *readerController) CompleteSignInClient(ctx context.Context, sessionID, 
 }
 
 func (r *readerController) ListClients(ctx context.Context, userID string) (sessionIDs []string, err error) {
-	var sessions []uuid.UUID
-	if err := r.db.
-		WithContext(ctx).
-		Model(&TelegramClient{}).
-		Where("user_id = ?", userID).
-		Pluck("session_id", &sessions).Error; err != nil {
-		return nil, err
+	sessions, err := r.db.GetSessionIDsByUserName(ctx, userID)
+	if err != nil {
+		return nil, errs.New(err)
 	}
+
 	// iterate over the sessions and convert them to string
 	sessionIDs = make([]string, len(sessions))
 	for i, session := range sessions {
@@ -260,6 +254,6 @@ func (r *readerController) StartReadMessage(ctx context.Context, sessionID strin
 	return nil
 }
 
-func NewReaderController(db *gorm.DB, manager ClientManager) ReaderController {
+func NewReaderController(db DAL, manager ClientManager) ReaderController {
 	return &readerController{db: db, manager: manager}
 }

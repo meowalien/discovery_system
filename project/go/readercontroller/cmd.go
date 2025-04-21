@@ -34,8 +34,13 @@ func Cmd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		globalLogger.Fatalf("failed to connect to database: %v", err)
 	}
+	dataAccessLayer := NewDAL(db, redisClient)
+
 	globalLogger.Infof("Starting gRPC server...")
-	manager := NewClientManager(redisClient)
+	manager, err := NewClientManager(ctx, redisClient, globalLogger)
+	if err != nil {
+		globalLogger.Fatalf("failed to create client manager: %v", err)
+	}
 	graceful_shutdown.AddFinalizer(func(ctx context.Context) {
 		e := manager.Close(ctx)
 		if e != nil {
@@ -44,11 +49,10 @@ func Cmd(cmd *cobra.Command, args []string) {
 		globalLogger.Info("ClientManager finalized")
 	})
 
-	err = manager.SyncClient(ctx)
 	if err != nil {
 		globalLogger.Fatalf("failed to sync client: %v", err)
 	}
-	controller := NewReaderController(db, manager)
+	controller := NewReaderController(dataAccessLayer, manager)
 	server := &GRPCServer{Logger: globalLogger, Controller: controller}
 	grpcServer := grpc.NewGrpcEngine()
 	reader_controller.RegisterReaderControllerServiceServer(grpcServer, server)
