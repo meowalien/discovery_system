@@ -7,3 +7,10 @@
 /project/go/project/datacollector/
 /project/go/project/
 /project/go/*.log
+/argocd-service-account-key.json
+/argocd_ssh_key
+/argocd_ssh_key.pub
+/google_compute_engine
+/google_compute_engine.pub
+/project/python/telegram_reader/test_grpc.py
+/project/python/telegram_reader/test_grpc_stop.py
