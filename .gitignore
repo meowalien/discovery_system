@@ -6,7 +6,7 @@
 /backup/
 /project/go/project/datacollector/
 /project/go/project/
-/project/go/*.log
+*.log
 /argocd-service-account-key.json
 /argocd_ssh_key
 /argocd_ssh_key.pub

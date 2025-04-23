@@ -3,14 +3,12 @@ package dal
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"go-root/lib/data_source"
 	"go-root/lib/errs"
 	"go-root/readercontroller/enum"
 	"gorm.io/gorm"
-	"strings"
 	"time"
 )
 
@@ -103,47 +101,28 @@ func (d *dal) readSessions(ctx context.Context, key string) ([]string, error) {
 	return sessions, nil
 }
 
-// diffKeys 計算新增與刪除的 keys，並回傳新的快取 map
-func (d *dal) diffKeys(
-	oldMap map[string]struct{},
-	newKeys []string,
-) (added []string, removed []string, newMap map[string]struct{}) {
-	newMap = make(map[string]struct{}, len(newKeys))
-	for _, k := range newKeys {
-		newMap[k] = struct{}{}
-		if _, ok := oldMap[k]; !ok {
-			added = append(added, k)
-		}
-	}
-	for k := range oldMap {
-		if _, ok := newMap[k]; !ok {
-			removed = append(removed, k)
-		}
-	}
-	return
-}
+//// parseHostNameFromKey 解析 Redis key 為主機名稱
+//func (d *dal) parseHostNameFromKey(key string) (string, error) {
+//	parts := strings.Split(key, ":")
+//	if len(parts) != 2 {
+//		return "", fmt.Errorf("invalid key format: %s", key)
+//	}
+//	return parts[1], nil
+//}
 
-// parseHostNameFromKey 解析 Redis key 為主機名稱
-func (d *dal) parseHostNameFromKey(key string) (string, error) {
-	parts := strings.Split(key, ":")
-	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid key format: %s", key)
-	}
-	return parts[1], nil
-}
-
-// parseHostNameFromKeys 逐一解析多個 keys
-func (d *dal) parseHostNameFromKeys(keys []string) ([]string, error) {
-	hosts := make([]string, 0, len(keys))
-	for _, key := range keys {
-		h, err := d.parseHostNameFromKey(key)
-		if err != nil {
-			return nil, err
-		}
-		hosts = append(hosts, h)
-	}
-	return hosts, nil
-}
+//// parseHostNameFromKeys 逐一解析多個 keys
+//func (d *dal) parseHostNameFromKeys(keys []string) ([]string, error) {
+//	hosts := make([]string, 0, len(keys))
+//	for _, key := range keys {
+//		h, err := d.parseHostNameFromKey(key)
+//		if err != nil {
+//			return nil, err
+//		}
+//		hosts = append(hosts, h)
+//	}
+//
+//	return hosts, nil
+//}
 
 func (d *dal) CheckIfSessionExist(ctx context.Context, sessionID string, userID string) (bool, error) {
 	err := d.postgresSQL.WithContext(ctx).Where("user_id = ? AND session_id = ?", userID, sessionID).Take(&TelegramClient{}).Error

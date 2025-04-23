@@ -65,6 +65,8 @@ func (h *telegramReaderServiceClientHeap) Remove(v MyTelegramReaderServiceClient
 }
 
 func (h *telegramReaderServiceClientHeap) Load(i int) (MyTelegramReaderServiceClientWithReferenceCount, bool) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
 	if len(h.slice) <= i {
 		return nil, false
 	}

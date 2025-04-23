@@ -8,6 +8,7 @@ import (
 	"go-root/lib/log"
 	"go-root/readercontroller/dal"
 	"go-root/readercontroller/telegramreader"
+	"strings"
 	"sync"
 	"time"
 )
@@ -22,6 +23,7 @@ type clientManager struct {
 }
 
 func (c *clientManager) Close(ctx context.Context) error {
+	c.logger.Debugf("clientManager.Close: running %d onClose callbacks", len(c.onClose))
 	var err error
 	for i := len(c.onClose) - 1; i >= 0; i-- {
 		f := c.onClose[i]
@@ -43,11 +45,20 @@ func (c *clientManager) Close(ctx context.Context) error {
 }
 
 func (c *clientManager) FindAvailableClient(ctx context.Context) (telegramreader.MyTelegramReaderServiceClient, error) {
+	c.logger.Debugf("FindAvailableClient called")
 	client, ok := c.serviceClientWithSessionCountHeap.Load(0)
 	if !ok {
 		return nil, fmt.Errorf("no available client")
 	}
 	return client, nil
+}
+
+func (c *clientManager) parseHostNameFromKey(key string) (string, error) {
+	parts := strings.Split(key, ":")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid key format: %s", key)
+	}
+	return parts[1], nil
 }
 
 // this should be called only once when the object is created
@@ -61,6 +72,8 @@ func (c *clientManager) syncReaders(ctx context.Context) error {
 		return nil
 	})
 
+	c.logger.Debugf("syncReaders: subscribed to reader changes")
+
 	go func() {
 		for {
 			select {
@@ -69,8 +82,12 @@ func (c *clientManager) syncReaders(ctx context.Context) error {
 					return
 				}
 				timeoutCtx, cancel := context.WithTimeout(ctx, time.Second*5)
-				for _, hostName := range newClientHostNames {
-					e := c.loadClientByHostName(timeoutCtx, hostName)
+				for _, keyName := range newClientHostNames {
+					hostName, e := c.parseHostNameFromKey(keyName)
+					if e != nil {
+						c.logger.Errorf("parseHostNameFromKey error: %v", errs.New(e))
+					}
+					e = c.loadClientByHostName(timeoutCtx, hostName)
 					if e != nil {
 						c.logger.Errorf("loadClientByHostName error: %v", errs.New(e))
 					}
@@ -81,8 +98,12 @@ func (c *clientManager) syncReaders(ctx context.Context) error {
 					return
 				}
 				timeoutCtx, cancel := context.WithTimeout(ctx, time.Second*5)
-				for _, hostName := range deletedClientHostNames {
-					e := c.removeClientByHostName(timeoutCtx, hostName)
+				for _, keyName := range deletedClientHostNames {
+					hostName, e := c.parseHostNameFromKey(keyName)
+					if e != nil {
+						c.logger.Errorf("parseHostNameFromKey error: %v", errs.New(e))
+					}
+					e = c.removeClientByHostName(timeoutCtx, hostName)
 					if e != nil {
 						c.logger.Errorf("loadClientByHostName error: %v", errs.New(e))
 					}
@@ -101,6 +122,7 @@ func (c *clientManager) syncReaders(ctx context.Context) error {
 }
 
 func (c *clientManager) FindClientBySessionID(ctx context.Context, sessionID string) (telegramreader.MyTelegramReaderServiceClient, bool, error) {
+	c.logger.Debugf("FindClientBySessionID: looking up sessionID %s", sessionID)
 	cli, exist := c.sessionIDToClientMap.Load(sessionID)
 	if !exist {
 		return nil, false, nil
@@ -120,6 +142,7 @@ func (c *clientManager) getTelegramReaderURL(hostName string) string {
 }
 
 func (c *clientManager) loadClientByHostName(ctx context.Context, hostName string) error {
+	c.logger.Infof("loadClientByHostName: resolving URL for hostName %s", hostName)
 	addr := c.getTelegramReaderURL(hostName)
 
 	client, err := telegramreader.NewMyTelegramReaderServiceClient(addr, hostName)
@@ -132,6 +155,7 @@ func (c *clientManager) loadClientByHostName(ctx context.Context, hostName strin
 		c.serviceClientWithSessionCountHeap,
 		c.logger,
 	)
+	c.logger.Debugf("loadClientByHostName: created clientWithReferenceCount for hostName %s", hostName)
 
 	err = c.syncReaderSessions(ctx, hostName, clientWithReferenceCount)
 	if err != nil {
@@ -141,6 +165,7 @@ func (c *clientManager) loadClientByHostName(ctx context.Context, hostName strin
 }
 
 func (c *clientManager) syncReaderSessions(ctx context.Context, hostName string, client telegramreader.MyTelegramReaderServiceClientWithReferenceCount) error {
+	c.logger.Debugf("syncReaderSessions: subscribed to session changes for hostName %s", hostName)
 	onNew, onDelete, onError, closeFunc := c.dal.SubscribeTelegramReaderSessionChange(ctx, hostName)
 	client.AddOnClose(func(ctx context.Context) error {
 		err := closeFunc()
@@ -172,7 +197,7 @@ func (c *clientManager) syncReaderSessions(ctx context.Context, hostName string,
 				if !ok {
 					return
 				}
-				c.logger.Errorf("error when reading SubscribeTelegramReaderChange: %v", errs.New(err))
+				c.logger.Errorf("error when reading SubscribeTelegramReaderSessionChange: %v", errs.New(err))
 			}
 		}
 	}()
@@ -180,6 +205,7 @@ func (c *clientManager) syncReaderSessions(ctx context.Context, hostName string,
 }
 
 func (c *clientManager) storeSessionIDToClient(hostName string, sessionID string, client telegramreader.MyTelegramReaderServiceClientWithReferenceCount) {
+	c.logger.Infof("storeSessionIDToClient: storing sessionID %s for hostName %s", sessionID, hostName)
 	c.appendHostNameToSessionID(hostName, sessionID)
 	oldClient, loaded := c.sessionIDToClientMap.LoadOrStore(sessionID, client)
 	client.AddSessionCount()
@@ -191,6 +217,7 @@ func (c *clientManager) storeSessionIDToClient(hostName string, sessionID string
 }
 
 func (c *clientManager) removeSessionIDToClient(hostName string, sessionID string) {
+	c.logger.Infof("removeSessionIDToClient: removing sessionID %s for hostName %s", sessionID, hostName)
 	oldClient, loaded := c.sessionIDToClientMap.LoadAndDelete(sessionID)
 	if loaded {
 		theOldClient := oldClient.(telegramreader.MyTelegramReaderServiceClientWithReferenceCount)
@@ -200,14 +227,16 @@ func (c *clientManager) removeSessionIDToClient(hostName string, sessionID strin
 		} else {
 			c.removeHostNameToSessionID(hostName, sessionID)
 		}
+		return
 	}
 	c.logger.Errorf("tring to remove sessionID %s, but not found in sessionIDToClientMap", sessionID)
 }
 
 func (c *clientManager) appendHostNameToSessionID(hostName string, sessionID string) {
-	sessonIDMap := sync.Map{}
-	sessonIDMap.Store(sessionID, struct{}{})
-	existIDMap, loaded := c.hostNameToSessionID.LoadOrStore(hostName, &sessonIDMap)
+	c.logger.Debugf("appendHostNameToSessionID: hostName=%s, sessionID=%s", hostName, sessionID)
+	sessionIDMap := sync.Map{}
+	sessionIDMap.Store(sessionID, struct{}{})
+	existIDMap, loaded := c.hostNameToSessionID.LoadOrStore(hostName, &sessionIDMap)
 	if loaded {
 		// 如果已經存在，則將新的 sessionID 添加到現有的映射中
 		existIDMap.(*sync.Map).Store(sessionID, struct{}{})
@@ -216,6 +245,7 @@ func (c *clientManager) appendHostNameToSessionID(hostName string, sessionID str
 }
 
 func (c *clientManager) removeHostNameToSessionID(hostName string, sessionID string) {
+	c.logger.Infof("removeHostNameToSessionID: hostName=%s, sessionID=%s", hostName, sessionID)
 	existIDMap, loaded := c.hostNameToSessionID.Load(hostName)
 	if loaded {
 		existIDMap.(*sync.Map).Delete(sessionID)
@@ -225,6 +255,7 @@ func (c *clientManager) removeHostNameToSessionID(hostName string, sessionID str
 }
 
 func (c *clientManager) removeHostName(hostName string) {
+	c.logger.Infof("removeHostName: removing hostName %s", hostName)
 	sessionMap, loaded := c.hostNameToSessionID.LoadAndDelete(hostName)
 	if !loaded {
 		c.logger.Errorf("hostName %s not found in hostNameToSessionID map", hostName)
@@ -241,9 +272,10 @@ func (c *clientManager) removeHostName(hostName string) {
 }
 
 func (c *clientManager) removeClientByHostName(_ context.Context, hostName string) error {
+	c.logger.Infof("removeClientByHostName: removing all sessions for hostName %s", hostName)
 	sessionIDs, loaded := c.hostNameToSessionID.Load(hostName)
 	if !loaded {
-		return errs.New("hostName %s not found in hostNameToSessionID map", hostName)
+		return nil
 	}
 	sessionIDs.(*sync.Map).Range(func(key, _ interface{}) bool {
 		sessionID := key.(string)

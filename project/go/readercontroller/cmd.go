@@ -37,7 +37,7 @@ func Cmd(cmd *cobra.Command, args []string) {
 	}
 	dataAccessLayer := dal.NewDAL(db, redisClient)
 
-	globalLogger.Infof("Starting gRPC server...")
+	globalLogger.Debugf("Starting gRPC server...")
 	manager, err := NewClientManager(ctx, globalLogger, dataAccessLayer)
 	if err != nil {
 		globalLogger.Fatalf("failed to create client manager: %v", err)
@@ -64,14 +64,14 @@ func Cmd(cmd *cobra.Command, args []string) {
 			globalLogger.Errorf("failt to stop grpc server: %v", err)
 			return
 		}
-		globalLogger.Infof("grpc server stopped")
+		globalLogger.Debugf("grpc server stopped")
 	})
 	go func() {
 		if err := grpcServer.Start(grpcAddr); err != nil {
 			globalLogger.Errorf("failt to start grpc server: %v", err)
 		}
 	}()
-	globalLogger.Infof("grpc server started at %s", grpcAddr)
+	globalLogger.Debugf("grpc server started at %s", grpcAddr)
 
 	graceful_shutdown.WaitForShutdown(time.Second * 5)
 
