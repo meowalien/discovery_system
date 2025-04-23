@@ -1,4 +1,4 @@
-package readercontroller
+package telegramreader
 
 import (
 	"container/heap"
@@ -8,18 +8,19 @@ import (
 // telegramReaderServiceClientHeap 定義一個整數切片，實作 heap.Interface
 // 用來取得最少 session count 的 client
 type telegramReaderServiceClientHeap struct {
-	slice []*myTelegramReaderServiceClientWithReferenceCount
+	slice []MyTelegramReaderServiceClientWithReferenceCount
 	lock  sync.Mutex
-	index map[*myTelegramReaderServiceClientWithReferenceCount]int
+	index map[MyTelegramReaderServiceClientWithReferenceCount]int
 }
 
 // 以下四個方法構成 heap.Interface 的必要實作
 
 func (h *telegramReaderServiceClientHeap) Len() int { return len(h.slice) }
+
 func (h *telegramReaderServiceClientHeap) Less(i, j int) bool {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	return h.slice[i].referenceCount.Load() < h.slice[j].referenceCount.Load()
+	return h.slice[i].GetReferenceCount() < h.slice[j].GetReferenceCount()
 } // 小頂堆：h[i] < h[j]
 // 如果想要大頂堆，改為 h[i] > h[j]
 
@@ -36,8 +37,8 @@ func (h *telegramReaderServiceClientHeap) Swap(i, j int) {
 func (h *telegramReaderServiceClientHeap) Push(x interface{}) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	h.slice = append(h.slice, x.(*myTelegramReaderServiceClientWithReferenceCount))
-	h.index[x.(*myTelegramReaderServiceClientWithReferenceCount)] = len(h.slice) - 1
+	h.slice = append(h.slice, x.(MyTelegramReaderServiceClientWithReferenceCount))
+	h.index[x.(MyTelegramReaderServiceClientWithReferenceCount)] = len(h.slice) - 1
 }
 
 func (h *telegramReaderServiceClientHeap) Pop() interface{} {
@@ -51,7 +52,7 @@ func (h *telegramReaderServiceClientHeap) Pop() interface{} {
 	return x
 }
 
-func (h *telegramReaderServiceClientHeap) Remove(v *myTelegramReaderServiceClientWithReferenceCount) bool {
+func (h *telegramReaderServiceClientHeap) Remove(v MyTelegramReaderServiceClientWithReferenceCount) bool {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
@@ -63,15 +64,20 @@ func (h *telegramReaderServiceClientHeap) Remove(v *myTelegramReaderServiceClien
 	return true
 }
 
-func (h *telegramReaderServiceClientHeap) Load(i int) (*myTelegramReaderServiceClientWithReferenceCount, bool) {
+func (h *telegramReaderServiceClientHeap) Load(i int) (MyTelegramReaderServiceClientWithReferenceCount, bool) {
 	if len(h.slice) <= i {
 		return nil, false
 	}
 	return h.slice[i], true
 }
 
-func NewTelegramReaderServiceClientHeap() *telegramReaderServiceClientHeap {
+type TelegramReaderServiceClientHeap interface {
+	Load(i int) (MyTelegramReaderServiceClientWithReferenceCount, bool)
+	Remove(v MyTelegramReaderServiceClientWithReferenceCount) bool
+}
+
+func NewTelegramReaderServiceClientHeap() TelegramReaderServiceClientHeap {
 	return &telegramReaderServiceClientHeap{
-		index: make(map[*myTelegramReaderServiceClientWithReferenceCount]int),
+		index: make(map[MyTelegramReaderServiceClientWithReferenceCount]int),
 	}
 }

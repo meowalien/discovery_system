@@ -1,4 +1,4 @@
-package readercontroller
+package telegramreader
 
 import (
 	"context"
@@ -9,13 +9,17 @@ import (
 
 type myTelegramReaderServiceClientWithReferenceCount struct {
 	MyTelegramReaderServiceClient
-	referenceCountHeap *telegramReaderServiceClientHeap
+	referenceCountHeap TelegramReaderServiceClientHeap
 	referenceCount     atomic.Uint32
 	logger             log.Logger
 	onCloseCallback    []func(ctx context.Context) error
 }
 
-func (m *myTelegramReaderServiceClientWithReferenceCount) addOnClose(f func(ctx context.Context) error) {
+func (m *myTelegramReaderServiceClientWithReferenceCount) GetReferenceCount() uint32 {
+	return m.referenceCount.Load()
+}
+
+func (m *myTelegramReaderServiceClientWithReferenceCount) AddOnClose(f func(ctx context.Context) error) {
 	m.onCloseCallback = append(m.onCloseCallback, f)
 }
 
@@ -65,7 +69,15 @@ func (m *myTelegramReaderServiceClientWithReferenceCount) AddSessionCount() uint
 	return m.referenceCount.Add(1)
 }
 
-func NewMyTelegramReaderServiceClientWithReferenceCount(client MyTelegramReaderServiceClient, referenceCountHeap *telegramReaderServiceClientHeap, logger log.Logger) *myTelegramReaderServiceClientWithReferenceCount {
+type MyTelegramReaderServiceClientWithReferenceCount interface {
+	MyTelegramReaderServiceClient
+	AddOnClose(func(ctx context.Context) error)
+	AddSessionCount() uint32
+	DeductSessionCount() uint32
+	GetReferenceCount() uint32
+}
+
+func NewMyTelegramReaderServiceClientWithReferenceCount(client MyTelegramReaderServiceClient, referenceCountHeap TelegramReaderServiceClientHeap, logger log.Logger) MyTelegramReaderServiceClientWithReferenceCount {
 	return &myTelegramReaderServiceClientWithReferenceCount{
 		MyTelegramReaderServiceClient: client,
 		referenceCountHeap:            referenceCountHeap,
