@@ -8,9 +8,9 @@ import (
 // telegramReaderServiceClientHeap 定義一個整數切片，實作 heap.Interface
 // 用來取得最少 session count 的 client
 type telegramReaderServiceClientHeap struct {
-	slice []MyTelegramReaderServiceClientWithReferenceCount
+	slice []MyTelegramReaderWithReferenceCount
 	lock  sync.Mutex
-	index map[MyTelegramReaderServiceClientWithReferenceCount]int
+	index map[MyTelegramReaderWithReferenceCount]int
 }
 
 // 以下四個方法構成 heap.Interface 的必要實作
@@ -37,8 +37,8 @@ func (h *telegramReaderServiceClientHeap) Swap(i, j int) {
 func (h *telegramReaderServiceClientHeap) Push(x interface{}) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	h.slice = append(h.slice, x.(MyTelegramReaderServiceClientWithReferenceCount))
-	h.index[x.(MyTelegramReaderServiceClientWithReferenceCount)] = len(h.slice) - 1
+	h.slice = append(h.slice, x.(MyTelegramReaderWithReferenceCount))
+	h.index[x.(MyTelegramReaderWithReferenceCount)] = len(h.slice) - 1
 }
 
 func (h *telegramReaderServiceClientHeap) Pop() interface{} {
@@ -52,7 +52,7 @@ func (h *telegramReaderServiceClientHeap) Pop() interface{} {
 	return x
 }
 
-func (h *telegramReaderServiceClientHeap) Remove(v MyTelegramReaderServiceClientWithReferenceCount) bool {
+func (h *telegramReaderServiceClientHeap) Remove(v MyTelegramReaderWithReferenceCount) bool {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
@@ -64,7 +64,7 @@ func (h *telegramReaderServiceClientHeap) Remove(v MyTelegramReaderServiceClient
 	return true
 }
 
-func (h *telegramReaderServiceClientHeap) Load(i int) (MyTelegramReaderServiceClientWithReferenceCount, bool) {
+func (h *telegramReaderServiceClientHeap) Load(i int) (MyTelegramReaderWithReferenceCount, bool) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	if len(h.slice) <= i {
@@ -74,12 +74,13 @@ func (h *telegramReaderServiceClientHeap) Load(i int) (MyTelegramReaderServiceCl
 }
 
 type TelegramReaderServiceClientHeap interface {
-	Load(i int) (MyTelegramReaderServiceClientWithReferenceCount, bool)
-	Remove(v MyTelegramReaderServiceClientWithReferenceCount) bool
+	heap.Interface
+	Load(i int) (MyTelegramReaderWithReferenceCount, bool)
+	Remove(v MyTelegramReaderWithReferenceCount) bool
 }
 
 func NewTelegramReaderServiceClientHeap() TelegramReaderServiceClientHeap {
 	return &telegramReaderServiceClientHeap{
-		index: make(map[MyTelegramReaderServiceClientWithReferenceCount]int),
+		index: make(map[MyTelegramReaderWithReferenceCount]int),
 	}
 }

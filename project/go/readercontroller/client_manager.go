@@ -16,7 +16,7 @@ import (
 type clientManager struct {
 	dal                               dal.DAL
 	logger                            log.Logger
-	sessionIDToClientMap              sync.Map // map[sessionID]MyTelegramReaderServiceClientWithReferenceCount
+	sessionIDToClientMap              sync.Map // map[sessionID]MyTelegramReaderWithReferenceCount
 	hostNameToSessionID               sync.Map //map[string]map[string]struct{}
 	serviceClientWithSessionCountHeap telegramreader.TelegramReaderServiceClientHeap
 	onClose                           []func(ctx context.Context) error
@@ -62,7 +62,8 @@ func (c *clientManager) parseHostNameFromKey(key string) (string, error) {
 }
 
 // this should be called only once when the object is created
-func (c *clientManager) syncReaders(ctx context.Context) error {
+func (c *clientManager) init(ctx context.Context) error {
+	// subscribe telegram reader change
 	onNew, onDelete, onError, closeFunc := c.dal.SubscribeTelegramReaderChange(ctx)
 	c.onCloseCallback(func(ctx context.Context) error {
 		err := closeFunc()
@@ -72,7 +73,7 @@ func (c *clientManager) syncReaders(ctx context.Context) error {
 		return nil
 	})
 
-	c.logger.Debugf("syncReaders: subscribed to reader changes")
+	c.logger.Debugf("init: subscribed to reader changes")
 
 	go func() {
 		for {
@@ -87,9 +88,9 @@ func (c *clientManager) syncReaders(ctx context.Context) error {
 					if e != nil {
 						c.logger.Errorf("parseHostNameFromKey error: %v", errs.New(e))
 					}
-					e = c.loadClientByHostName(timeoutCtx, hostName)
+					e = c.loadReaderByHostName(timeoutCtx, hostName)
 					if e != nil {
-						c.logger.Errorf("loadClientByHostName error: %v", errs.New(e))
+						c.logger.Errorf("loadReaderByHostName error: %v", errs.New(e))
 					}
 				}
 				cancel()
@@ -103,9 +104,9 @@ func (c *clientManager) syncReaders(ctx context.Context) error {
 					if e != nil {
 						c.logger.Errorf("parseHostNameFromKey error: %v", errs.New(e))
 					}
-					e = c.removeClientByHostName(timeoutCtx, hostName)
+					e = c.removeReaderByHostName(timeoutCtx, hostName)
 					if e != nil {
-						c.logger.Errorf("loadClientByHostName error: %v", errs.New(e))
+						c.logger.Errorf("loadReaderByHostName error: %v", errs.New(e))
 					}
 				}
 				cancel()
@@ -127,7 +128,7 @@ func (c *clientManager) FindClientBySessionID(ctx context.Context, sessionID str
 	if !exist {
 		return nil, false, nil
 	}
-	client := cli.(telegramreader.MyTelegramReaderServiceClientWithReferenceCount)
+	client := cli.(telegramreader.MyTelegramReaderWithReferenceCount)
 	return client, true, nil
 }
 
@@ -141,21 +142,21 @@ func (c *clientManager) getTelegramReaderURL(hostName string) string {
 	return addr
 }
 
-func (c *clientManager) loadClientByHostName(ctx context.Context, hostName string) error {
-	c.logger.Infof("loadClientByHostName: resolving URL for hostName %s", hostName)
+func (c *clientManager) loadReaderByHostName(ctx context.Context, hostName string) error {
+	c.logger.Infof("loadReaderByHostName: resolving URL for hostName %s", hostName)
 	addr := c.getTelegramReaderURL(hostName)
 
-	client, err := telegramreader.NewMyTelegramReaderServiceClient(addr, hostName)
+	reader, err := telegramreader.NewMyTelegramReader(addr, hostName)
 	if err != nil {
 		return errs.New(err)
 	}
 
-	clientWithReferenceCount := telegramreader.NewMyTelegramReaderServiceClientWithReferenceCount(
-		client,
-		c.serviceClientWithSessionCountHeap,
+	clientWithReferenceCount := telegramreader.NewMyTelegramReaderWithReferenceCount(
+		reader,
 		c.logger,
 	)
-	c.logger.Debugf("loadClientByHostName: created clientWithReferenceCount for hostName %s", hostName)
+	c.logger.Debugf("loadReaderByHostName: created clientWithReferenceCount for hostName %s", hostName)
+	c.serviceClientWithSessionCountHeap.Push(clientWithReferenceCount)
 
 	err = c.syncReaderSessions(ctx, hostName, clientWithReferenceCount)
 	if err != nil {
@@ -164,8 +165,9 @@ func (c *clientManager) loadClientByHostName(ctx context.Context, hostName strin
 	return nil
 }
 
-func (c *clientManager) syncReaderSessions(ctx context.Context, hostName string, client telegramreader.MyTelegramReaderServiceClientWithReferenceCount) error {
+func (c *clientManager) syncReaderSessions(ctx context.Context, hostName string, client telegramreader.MyTelegramReaderWithReferenceCount) error {
 	c.logger.Debugf("syncReaderSessions: subscribed to session changes for hostName %s", hostName)
+	// subscribe to session changes in a reader
 	onNew, onDelete, onError, closeFunc := c.dal.SubscribeTelegramReaderSessionChange(ctx, hostName)
 	client.AddOnClose(func(ctx context.Context) error {
 		err := closeFunc()
@@ -183,7 +185,7 @@ func (c *clientManager) syncReaderSessions(ctx context.Context, hostName string,
 					return
 				}
 				for _, sessionID := range newSessionIDs {
-					c.storeSessionIDToClient(hostName, sessionID, client)
+					c.registerSessionIDToReader(hostName, sessionID, client)
 				}
 
 			case deletedSessionIDs, ok := <-onDelete:
@@ -191,7 +193,7 @@ func (c *clientManager) syncReaderSessions(ctx context.Context, hostName string,
 					return
 				}
 				for _, sessionID := range deletedSessionIDs {
-					c.removeSessionIDToClient(hostName, sessionID)
+					c.unregisterSessionIDToReader(hostName, sessionID)
 				}
 			case err, ok := <-onError:
 				if !ok {
@@ -204,25 +206,40 @@ func (c *clientManager) syncReaderSessions(ctx context.Context, hostName string,
 	return nil
 }
 
-func (c *clientManager) storeSessionIDToClient(hostName string, sessionID string, client telegramreader.MyTelegramReaderServiceClientWithReferenceCount) {
-	c.logger.Infof("storeSessionIDToClient: storing sessionID %s for hostName %s", sessionID, hostName)
+func (c *clientManager) registerSessionIDToReader(hostName string, sessionID string, client telegramreader.MyTelegramReaderWithReferenceCount) {
+	c.logger.Infof("registerSessionIDToReader: storing sessionID %s for hostName %s", sessionID, hostName)
 	c.appendHostNameToSessionID(hostName, sessionID)
 	oldClient, loaded := c.sessionIDToClientMap.LoadOrStore(sessionID, client)
 	client.AddSessionCount()
 	if loaded {
 		c.logger.Errorf("sessionID %s already exists, replacing with new client", sessionID)
-		theOldClient := oldClient.(telegramreader.MyTelegramReaderServiceClientWithReferenceCount)
-		theOldClient.DeductSessionCount()
+		theOldClient := oldClient.(telegramreader.MyTelegramReaderWithReferenceCount)
+		remainReferenceCount := theOldClient.DeductSessionCount()
+		if remainReferenceCount == 0 {
+			c.logger.Debug("Reference count is zero, closing client and removing from heap")
+			err := theOldClient.Close(context.Background())
+			if err != nil {
+				c.logger.Errorf("error when closing client: %v", errs.New(err))
+			}
+			c.serviceClientWithSessionCountHeap.Remove(theOldClient)
+			c.removeHostName(hostName)
+		}
 	}
 }
 
-func (c *clientManager) removeSessionIDToClient(hostName string, sessionID string) {
-	c.logger.Infof("removeSessionIDToClient: removing sessionID %s for hostName %s", sessionID, hostName)
+func (c *clientManager) unregisterSessionIDToReader(hostName string, sessionID string) {
+	c.logger.Infof("unregisterSessionIDToReader: removing sessionID %s for hostName %s", sessionID, hostName)
 	oldClient, loaded := c.sessionIDToClientMap.LoadAndDelete(sessionID)
 	if loaded {
-		theOldClient := oldClient.(telegramreader.MyTelegramReaderServiceClientWithReferenceCount)
+		theOldClient := oldClient.(telegramreader.MyTelegramReaderWithReferenceCount)
 		remainReferenceCount := theOldClient.DeductSessionCount()
 		if remainReferenceCount == 0 {
+			c.logger.Debug("Reference count is zero, closing client and removing from heap")
+			err := theOldClient.Close(context.Background())
+			if err != nil {
+				c.logger.Errorf("error when closing client: %v", errs.New(err))
+			}
+			c.serviceClientWithSessionCountHeap.Remove(theOldClient)
 			c.removeHostName(hostName)
 		} else {
 			c.removeHostNameToSessionID(hostName, sessionID)
@@ -271,8 +288,8 @@ func (c *clientManager) removeHostName(hostName string) {
 	}
 }
 
-func (c *clientManager) removeClientByHostName(_ context.Context, hostName string) error {
-	c.logger.Infof("removeClientByHostName: removing all sessions for hostName %s", hostName)
+func (c *clientManager) removeReaderByHostName(_ context.Context, hostName string) error {
+	c.logger.Infof("removeReaderByHostName: removing all sessions for hostName %s", hostName)
 	sessionIDs, loaded := c.hostNameToSessionID.Load(hostName)
 	if !loaded {
 		return nil
@@ -280,9 +297,10 @@ func (c *clientManager) removeClientByHostName(_ context.Context, hostName strin
 	sessionIDs.(*sync.Map).Range(func(key, _ interface{}) bool {
 		sessionID := key.(string)
 		// will automatically remove hostName from c.hostNameToSessionID when last sessionID removed
-		c.removeSessionIDToClient(hostName, sessionID)
+		c.unregisterSessionIDToReader(hostName, sessionID)
 		return true
 	})
+
 	return nil
 }
 
@@ -298,7 +316,7 @@ func NewClientManager(ctx context.Context, logger log.Logger, dataAccessLayer da
 		logger:                            logger,
 		serviceClientWithSessionCountHeap: telegramreader.NewTelegramReaderServiceClientHeap(),
 	}
-	err := manager.syncReaders(ctx)
+	err := manager.init(ctx)
 	if err != nil {
 		return nil, errs.New(err)
 	}

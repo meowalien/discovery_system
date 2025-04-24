@@ -5,7 +5,7 @@ import (
 	"go-root/lib/errs"
 	"go-root/lib/log"
 	"go-root/proto_impl/reader_controller"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type GRPCServer struct {

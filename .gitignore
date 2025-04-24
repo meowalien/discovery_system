@@ -14,3 +14,4 @@
 /google_compute_engine.pub
 /project/python/telegram_reader/test_grpc.py
 /project/python/telegram_reader/test_grpc_stop.py
+/project/go/readercontroller/reader_controller_server_test.go

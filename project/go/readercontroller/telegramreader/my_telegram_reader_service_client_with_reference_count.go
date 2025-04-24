@@ -9,10 +9,9 @@ import (
 
 type myTelegramReaderServiceClientWithReferenceCount struct {
 	MyTelegramReaderServiceClient
-	referenceCountHeap TelegramReaderServiceClientHeap
-	referenceCount     atomic.Uint32
-	logger             log.Logger
-	onCloseCallback    []func(ctx context.Context) error
+	referenceCount  atomic.Uint32
+	logger          log.Logger
+	onCloseCallback []func(ctx context.Context) error
 }
 
 func (m *myTelegramReaderServiceClientWithReferenceCount) GetReferenceCount() uint32 {
@@ -55,13 +54,6 @@ func (m *myTelegramReaderServiceClientWithReferenceCount) DeductSessionCount() u
 	m.logger.Debug("Deducting session count, current count:", currentCount)
 
 	if currentCount == 0 {
-		// close MyTelegramReaderServiceClient and remove self from heap
-		m.logger.Debug("Reference count is zero, closing client and removing from heap")
-		err := m.Close(context.Background())
-		if err != nil {
-			m.logger.Errorf("error when closing client: %v", errs.New(err))
-		}
-		m.referenceCountHeap.Remove(m)
 		return 0
 	}
 	newCount := m.referenceCount.Add(^uint32(0))
@@ -80,7 +72,7 @@ func (m *myTelegramReaderServiceClientWithReferenceCount) AddSessionCount() uint
 	return newCount
 }
 
-type MyTelegramReaderServiceClientWithReferenceCount interface {
+type MyTelegramReaderWithReferenceCount interface {
 	MyTelegramReaderServiceClient
 	AddOnClose(func(ctx context.Context) error)
 	AddSessionCount() uint32
@@ -88,10 +80,9 @@ type MyTelegramReaderServiceClientWithReferenceCount interface {
 	GetReferenceCount() uint32
 }
 
-func NewMyTelegramReaderServiceClientWithReferenceCount(client MyTelegramReaderServiceClient, referenceCountHeap TelegramReaderServiceClientHeap, logger log.Logger) MyTelegramReaderServiceClientWithReferenceCount {
+func NewMyTelegramReaderWithReferenceCount(client MyTelegramReaderServiceClient, logger log.Logger) MyTelegramReaderWithReferenceCount {
 	return &myTelegramReaderServiceClientWithReferenceCount{
 		MyTelegramReaderServiceClient: client,
-		referenceCountHeap:            referenceCountHeap,
 		logger:                        logger,
 	}
 }

@@ -101,29 +101,6 @@ func (d *dal) readSessions(ctx context.Context, key string) ([]string, error) {
 	return sessions, nil
 }
 
-//// parseHostNameFromKey 解析 Redis key 為主機名稱
-//func (d *dal) parseHostNameFromKey(key string) (string, error) {
-//	parts := strings.Split(key, ":")
-//	if len(parts) != 2 {
-//		return "", fmt.Errorf("invalid key format: %s", key)
-//	}
-//	return parts[1], nil
-//}
-
-//// parseHostNameFromKeys 逐一解析多個 keys
-//func (d *dal) parseHostNameFromKeys(keys []string) ([]string, error) {
-//	hosts := make([]string, 0, len(keys))
-//	for _, key := range keys {
-//		h, err := d.parseHostNameFromKey(key)
-//		if err != nil {
-//			return nil, err
-//		}
-//		hosts = append(hosts, h)
-//	}
-//
-//	return hosts, nil
-//}
-
 func (d *dal) CheckIfSessionExist(ctx context.Context, sessionID string, userID string) (bool, error) {
 	err := d.postgresSQL.WithContext(ctx).Where("user_id = ? AND session_id = ?", userID, sessionID).Take(&TelegramClient{}).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
